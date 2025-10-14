@@ -1,0 +1,170 @@
+import logging
+import re
+
+from pyrogram import Client
+from pyrogram.errors import MessageIdInvalid
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+
+from ..forms.definition import FormDefinition, FieldKind
+from ..forms.validators import ValidatorWizard, email_validator, phone_validator
+from ..services.form_service import FormService
+from ..storage.session_store import RedisSessionStore
+
+logger = logging.getLogger(__name__)
+
+class FormConversation:
+    """Manages one user's form filling conversation using session store and form definition."""
+    def __init__(self, session_store: RedisSessionStore, form_service: FormService, form_def: FormDefinition):
+        self.session_store = session_store
+        self.form_service = form_service
+        self.form_def = form_def
+        self.validator = ValidatorWizard()
+        self.validator.add_validator(email_validator, "email")
+        self.validator.add_validator(phone_validator, "phone")
+
+    async def start(self, client: Client, callback: CallbackQuery):
+        user = callback.from_user
+        pages = list(self.form_def.pages())
+        session = {
+            'run': False,
+            'definition_id': self.form_def.id,
+            'menu_id': 0,
+            'page': 0,
+            'question':0,
+            'count_questions': 0,
+            'count_pages': len(pages),
+            'answers': {},
+        }
+        for _ in pages:
+            for __ in _:
+                session["count_questions"] += 1
+
+        session_old = await self.session_store.get(user.id)
+        if session_old and session_old.get("definition_id", "") != session["definition_id"]:
+            await self.session_store.set_overwrite(user.id, session)
+        else:
+            await self.session_store.set_initialize(user.id, session)
+        await self._send_page(client, callback.message.chat.id, user.id)
+
+    async def handle_message(self, client: Client, message: Message):
+        user = message.from_user
+        session = await self.session_store.get(user.id) or {}
+        if session.get('definition_id') != self.form_def.id:
+            return
+        if not session["run"]:
+            await message.reply('Нажмите Заполнить/Изменить чтобы начать.')
+            return
+        if not session:
+            await message.reply('Сессия не найдена. Наберите /start чтобы начать.')
+            return
+        page_idx = session.get('page', 0)
+        fields = list(self.form_def.pages())
+        if page_idx >= len(fields):
+            await message.reply('Страницы не найдены — начните заново. Наберите /start')
+            return
+
+        # Accept input for the next unanswered field on this page
+        page_fields = fields[page_idx]
+        # find first field without answer
+        target = None
+        for f in page_fields:
+            if f.key not in session['answers']:
+                target = f
+                break
+        if not target:
+            # Move forward
+            await self._goto_next_page(user.id, client, message.chat.id)
+            return
+
+        # Basic validation
+        val = None
+        if target.kind == 'file' and message.document:
+            val = {'file_id': message.document.file_id, 'file_name': message.document.file_name}
+        else:
+            val = message.text
+            if target.kind == FieldKind.NUMBER:
+                val = int(re.search(r'\d+', val).group())
+            status, validator_message = self.validator.validate_answer(target, val)
+            if not status:
+                await message.reply(f'Так не пойдёт, {validator_message}')
+                return
+
+        if target.required and not val:
+            await message.reply(f'Поле "{target.label}" обязательно.')
+            return
+
+        session['answers'][target.key] = val
+        session['question'] += 1
+        await self.session_store.set_overwrite(user.id, session)
+
+        # If this page is fully answered, offer controls
+        all_answered = all(f.key in session['answers'] for f in page_fields)
+        if all_answered:
+            await self._send_page_controls(client, message.chat.id, user.id, session)
+        else:
+            await message.reply(f'{target.label} - принято!\nОтправьте {page_fields[session['question']].label}:')
+
+    async def _send_page(self, client, chat_id: int, user_id: int):
+        session = await self.session_store.get(user_id)
+        page_idx = session['page']
+        pages = list(self.form_def.pages())
+        if page_idx >= len(pages):
+            page_idx =- 1
+        page_fields = pages[page_idx]
+        del pages
+
+        text_lines = [f'<b>{self.form_def.title}</b>\nСтраница {page_idx + 1}/{session['count_pages']}\n\n']
+        for f in page_fields:
+            existing = session['answers'].get(f.key)
+            text_lines.append(f"{f.label}: {existing if existing else '(пусто)'}")
+        text = '\n'.join(text_lines)
+
+        if session['menu_id']:
+            try:
+                await client.edit_message_reply_markup(chat_id, session['menu_id'], reply_markup=None)
+            except MessageIdInvalid:
+                pass
+
+        kb_unit = []
+        kb = [[InlineKeyboardButton('Заполнить/Изменить', callback_data=f'fill:page:{page_idx}')]]
+
+        if session['page'] > 0:
+            kb_unit.append(InlineKeyboardButton('Назад', callback_data='nav:prev'))
+        if session['page'] + 1 < session['count_pages']:
+            kb_unit.append(InlineKeyboardButton('Следующая', callback_data='nav:next'))
+        kb.append(kb_unit)
+        if len(session['answers']) == session['count_questions']:
+            kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
+
+        sent_message = await client.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(kb))
+        session['menu_id'] = sent_message.id
+        await self.session_store.set_overwrite(user_id, session)
+
+    async def _send_page_controls(self, client, chat_id: int, user_id: int, session: dict):
+        # After page complete, show navigation and submit
+        kb_unit = []
+        kb = []
+
+        if session['page'] > 0:
+            kb_unit.append(InlineKeyboardButton('Назад', callback_data='nav:prev'))
+        if session['page'] + 1 < session['count_pages']:
+            kb_unit.append(InlineKeyboardButton('Следующая', callback_data='nav:next'))
+        kb.append(kb_unit)
+        if len(session['answers']) == session['count_questions']:
+            kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
+
+        #await self._send_page(client, chat_id, user_id)
+        if session['menu_id']:
+            try:
+                await client.edit_message_reply_markup(chat_id, session['menu_id'], reply_markup=None)
+            except MessageIdInvalid:
+                pass
+        sent_message = await client.send_message(chat_id, 'Страница заполнена. Что дальше?', reply_markup=InlineKeyboardMarkup(kb))
+        session['menu_id'] = sent_message.id
+        await self.session_store.set_overwrite(user_id, session)
+
+    async def _goto_next_page(self, user_id: int, client, chat_id: int):
+        session = await self.session_store.get(user_id)
+        session['page'] = session.get('page', 0) + 1
+        await self.session_store.set_overwrite(user_id, session)
+        await self._send_page(client, chat_id, user_id)
