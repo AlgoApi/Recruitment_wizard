@@ -1,0 +1,31 @@
+from ..handlers.form_handler import FormConversation
+
+
+def format_content(content: dict, form_conv: FormConversation, indent: int = 0) -> str:
+    pad = " " * indent
+    lines: list[str] = []
+    if isinstance(content, dict):
+        for k, v in content.items():
+            if isinstance(v, (dict, list)):
+                lines.append(f"{pad}{translate(k, form_conv)}:")
+                lines.append(format_content(v, indent=indent + 2, form_conv=form_conv))
+            else:
+                lines.append(f"{pad}{translate(k, form_conv)}: {v}")
+    elif isinstance(content, list):
+        for i, v in enumerate(content, 1):
+            if isinstance(v, (dict, list)):
+                lines.append(f"{pad}- [{i}]")
+                lines.append(format_content(v, indent=indent + 2, form_conv=form_conv))
+            else:
+                lines.append(f"{pad}- {v}")
+    else:
+        lines.append(f"{pad}{content}")
+    return "\n".join(lines)
+
+
+def translate(key:str, form_conv: FormConversation):
+    fields = form_conv.form_def.fields
+    for field in fields:
+        if field.key == key:
+            return field.label
+    return key
