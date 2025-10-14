@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean, BigInteger
 from sqlalchemy import Identity
 from sqlalchemy.sql import func
 
@@ -9,7 +9,7 @@ class FormModel(Base):
     __tablename__ = 'Recruitment_forms'
 
     id = Column(Integer, Identity(start=1, cycle=False), primary_key=True, index=True)
-    user_id = Column(Integer, index=True, nullable=False)
+    user_id = Column(BigInteger, index=True, nullable=False)
     username = Column(String, nullable=False)
     role = Column(String, nullable=False)
     content = Column(JSON, nullable=False, default={})
