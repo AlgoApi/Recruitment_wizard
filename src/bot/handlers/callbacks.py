@@ -207,7 +207,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 deny_key = key
             i += 1
 
-        text_to_user = deny_text + right if sep == "!" else operator_desc
+        text_to_user = deny_text + right if sep == "!" else deny_text + agent_desc
         await safe_send_to_user(user_id, text_to_user)
 
         await form_service.update_form(form_id, None, False)
@@ -292,7 +292,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             if not new_status:  # Отклонено
                 await form_service.update_form(form_id, None, new_status)
                 left, sep, right = operator_desc.partition("!")
-                await safe_send_to_user(user_id, agent_reject + right if sep == "!" else agent_desc)
+                await safe_send_to_user(user_id, agent_reject + right if sep == "!" else agent_reject + operator_desc)
             else:
                 await safe_send_to_user(user_id, agent_accept)
             '''

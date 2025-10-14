@@ -286,7 +286,7 @@ async def run_wizard():
     @app.on_message(filters.command("whoami") & filters.group)
     async def whoami(client, message):
         await message.reply_text(f"CHAT -> id: {message.chat.id} type: {message.chat.type} title: {getattr(message.chat, 'title', None)}")
-        await client.send_message(chat_id=-4790613364, text="123")
+        await client.send_message(chat_id=message.chat.id, text="pong")
 
     logger.info('Starting Pyrogram bot')
     await app.start()
