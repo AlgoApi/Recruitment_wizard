@@ -1,8 +1,8 @@
 from pyrogram import filters
 from ..config import settings
 
-MODER_USERNAMES = {"AlgoApi"}
-ADMIN_USERNAMES = {"AlgoApi"}
+MODER_USERNAMES = set()
+ADMIN_USERNAMES = set()
 
 def moder_rule_fabric():
     return filters.create(lambda _, __, message: (
