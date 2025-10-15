@@ -239,7 +239,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("view") & filters.private & allowed_moder_rule)
     async def cmd_view_forms(client: Client, message: Message):
-        form = await form_service.get_form(None, "operator")
+        form = await form_service.get_form(None, "operator", assigned_to=message.from_user.username)
 
         if not form:
             await message.reply_text("Нет заявок в статусе ожидания.")

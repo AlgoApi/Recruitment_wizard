@@ -103,7 +103,7 @@ class FormService:
             last_id = result.scalar_one_or_none()
             return last_id
 
-    async def get_form(self, form_id: int = None, role: str = None, user_id: int = None):
+    async def get_form(self, form_id: int = None, role: str = None, user_id: int = None, assigned_to: str = None):
         async with AsyncSessionLocal() as session:
             stmt = select(FormModel).where(FormModel.status.is_(None))
             if form_id is not None:
@@ -112,6 +112,8 @@ class FormService:
                 stmt = stmt.where(FormModel.role == role)
             if user_id is not None:
                 stmt = stmt.where(FormModel.user_id == user_id)
+            if user_id is not None:
+                stmt = stmt.where(FormModel.assigned_to == assigned_to)
 
             stmt = stmt.order_by(FormModel.created_at).limit(1)
 
