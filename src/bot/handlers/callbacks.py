@@ -19,6 +19,14 @@ async def safe_answer(callback: CallbackQuery):
         pass
     return
 
+async def safe_send_to_user(client:Client, user_identifier, text_vv, reply_markup_v:InlineKeyboardMarkup=None):
+            try:
+                await client.send_message(chat_id=user_identifier, text=text_vv, reply_markup=reply_markup_v)
+                return True
+            except Exception as e:
+                logger.error(f"Ошибка отправки сообщения пользователю: {e}")
+                return False
+
 async def callback_router(client: Client, callback: CallbackQuery, session_store: RedisSessionStore, form_conv: FormConversation, form_service: FormService, cmd_start: callable):
     data = callback.data or ''
     user = callback.from_user
@@ -184,13 +192,6 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             await callback.answer("Неправильные данные", show_alert=True)
             return
 
-        async def safe_send_to_user(user_identifier, text_v):
-            try:
-                await client.send_message(chat_id=user_identifier, text=text_v)
-                return True
-            except Exception:
-                return False
-
         form = await form_service.get_form(form_id=form_id)
 
         user_id = form.user_id
@@ -208,7 +209,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             i += 1
 
         text_to_user = deny_text + right if sep == "!" else deny_text + agent_desc
-        await safe_send_to_user(user_id, text_to_user)
+        await safe_send_to_user(client, user_id, text_to_user)
 
         await form_service.update_form(form_id, None, False)
 
@@ -265,13 +266,6 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         except Exception:
             pass
 
-        async def safe_send_to_user(user_identifier, text_vv):
-            try:
-                await client.send_message(chat_id=user_identifier, text=text_vv)
-                return True
-            except Exception:
-                return False
-
         user_id = form.user_id
         role = (form.role or "").lower()
         assigned = form.assigned_to or ""
@@ -286,15 +280,15 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:  # Успешно
                 manager_ref = f"@{assigned}" if assigned else "(менеджер не назначен)"
-                await safe_send_to_user(user_id, operator_accept + manager_ref)
+                await safe_send_to_user(client, user_id, operator_accept + manager_ref, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
 
         elif role == "agent":
             if not new_status:  # Отклонено
                 await form_service.update_form(form_id, None, new_status)
                 left, sep, right = operator_desc.partition("!")
-                await safe_send_to_user(user_id, agent_reject + right if sep == "!" else agent_reject + operator_desc)
+                await safe_send_to_user(client, user_id, agent_reject + right if sep == "!" else agent_reject + operator_desc)
             else:
-                await safe_send_to_user(user_id, agent_accept)
+                await safe_send_to_user(client, user_id, agent_accept)
             '''
             DEPRECATED
             else:  # Успешно: отправляем полную анкету назначенному менеджеру
@@ -324,5 +318,5 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                                         "Ваша заявка одобрена — менеджер получил анкету и свяжется с вами.")
             '''
         else:
-            await safe_send_to_user(user_id, f"Статус вашей заявки: {status_label}")
+            await safe_send_to_user(client, user_id, f"Статус вашей заявки: {status_label}")
     return
