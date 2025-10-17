@@ -83,7 +83,12 @@ class FormConversation:
         else:
             val = message.text
             if target.kind == FieldKind.NUMBER:
-                val = int(re.search(r'\d+', val).group())
+                re_val = re.search(r'\d+', val)
+                if re_val:
+                    val = int(re_val.group())
+                else:
+                    await message.reply(f'Так не пойдёт, введите число')
+                    return
             status, validator_message = self.validator.validate_answer(target, val)
             if not status:
                 await message.reply(f'Так не пойдёт, {validator_message}')
