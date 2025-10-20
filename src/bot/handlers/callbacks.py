@@ -27,37 +27,34 @@ async def safe_send_to_user(client:Client, user_identifier, text_vv, reply_marku
                 logger.error(f"Ошибка отправки сообщения пользователю: {e}")
                 return False
 
+async def valid_start_role(form_service: FormService, callback: CallbackQuery, user_id, role, data):
+    parts = data.split(':')
+    command = parts[1]
+    if await form_service.is_submited(user_id, role):
+        await callback.message.reply_text(wait_text)
+        await safe_answer(callback)
+        return ""
+    expiry = await form_service.is_cooldown(user_id, role)
+    if expiry > 0:
+        await callback.message.reply_text(cooldown_text + f"{expiry} минут")
+        await safe_answer(callback)
+        return ""
+
+    return command
+
 async def callback_router(client: Client, callback: CallbackQuery, session_store: RedisSessionStore, form_conv: FormConversation, form_service: FormService, cmd_start: callable):
     data = callback.data or ''
     user = callback.from_user
     session = await session_store.get(user.id) or {}
     if data.startswith('operator:') and form_conv.form_def.id == "operator":
-        parts = data.split(':')
-        command = parts[1]
-        if await form_service.is_submited(user.id, "operator"):
-            await callback.message.reply_text(wait_text)
-            await safe_answer(callback)
-            return
-        if await form_service.is_cooldown(user.id, "operator"):
-            await callback.message.reply_text(cooldown_text)
-            await safe_answer(callback)
-            return
+        command = await valid_start_role(form_service, callback, user.id, "operator", data)
         if command == "start":
             await form_conv.start(client, callback)
 
         await safe_answer(callback)
         return
     elif data.startswith('agent:') and form_conv.form_def.id == "agent":
-        parts = data.split(':')
-        command = parts[1]
-        if await form_service.is_submited(user.id, "agent"):
-            await callback.message.reply_text(wait_text)
-            await safe_answer(callback)
-            return
-        if await form_service.is_cooldown(user.id, "agent"):
-            await callback.message.reply_text(cooldown_text)
-            await safe_answer(callback)
-            return
+        command = await valid_start_role(form_service, callback, user.id, "agent", data)
         if command == "start":
             await form_conv.start(client, callback)
 
@@ -69,7 +66,6 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         return
     elif session:
         if data.startswith('fill:page:'):
-            # user pressed fill — ask for first unanswered field on that page
             parts = data.split(':')
             page = int(parts[2])
             session["run"] = True
@@ -88,7 +84,6 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 except MessageIdInvalid:
                     pass
 
-            # send prompt for first unanswered field
             if len(pages[page]) <= session["question"]:
                 # await callback.message.reply("На этой странице всё, переходите к следующей")
                 for question in pages[page]:
@@ -136,7 +131,14 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                     await client.delete_messages(callback.message.chat.id, session['menu_id'])
                 except MessageIdInvalid:
                     pass
-            await callback.message.reply(anketa_sent)
+            role_txt = "не назначено"
+            match session["role"]:
+                case "operator":
+                    role_txt="оператора"
+                case "agent":
+                    role_txt = "агента"
+
+            await callback.message.reply(anketa_sent.replace("{ROLE_NOT_ASSIGNED}", role_txt))
             await cmd_start(client, callback.message)
             if session.get('definition_id', "UNDEFINED") == 'agent':
                 header = (
@@ -202,13 +204,21 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         deny_key = ""
 
         i = 0
-        for key, text in operator_deny_reasons_text.items():
-            if i == int(reason):
-                deny_text = text
-                deny_key = key
-            i += 1
+        match form.role:
+            case "agent":
+                for key, text in agent_deny_reasons_text.items():
+                    if i == int(reason):
+                        deny_text = text
+                        deny_key = key
+                    i += 1
+            case "operator":
+                for key, text in operator_deny_reasons_text.items():
+                    if i == int(reason):
+                        deny_text = text
+                        deny_key = key
+                    i += 1
 
-        text_to_user = deny_text + right if sep == "!" else deny_text + agent_desc
+        text_to_user = deny_text
         await safe_send_to_user(client, user_id, text_to_user)
 
         await form_service.update_form(form_id, None, False)
@@ -280,13 +290,17 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:  # Успешно
                 manager_ref = f"@{assigned}" if assigned else "(менеджер не назначен)"
-                await safe_send_to_user(client, user_id, operator_accept + manager_ref, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
+                await safe_send_to_user(client, user_id, operator_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", manager_ref), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
 
         elif role == "agent":
             if not new_status:  # Отклонено
-                await form_service.update_form(form_id, None, new_status)
-                left, sep, right = operator_desc.partition("!")
-                await safe_send_to_user(client, user_id, agent_reject + right if sep == "!" else agent_reject + operator_desc)
+                #
+                kb = [[]]
+                i = 0
+                for k, v in agent_deny_reasons_text.items():
+                    kb[0].append(InlineKeyboardButton(f"❌ {k}", callback_data=f"deny_reason:{form.id}:{i}"))
+                    i += 1
+                await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:
                 await safe_send_to_user(client, user_id, agent_accept)
             '''

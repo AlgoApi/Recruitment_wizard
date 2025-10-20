@@ -13,7 +13,6 @@ from ..storage.session_store import RedisSessionStore
 logger = logging.getLogger(__name__)
 
 class FormConversation:
-    """Manages one user's form filling conversation using session store and form definition."""
     def __init__(self, session_store: RedisSessionStore, form_service: FormService, form_def: FormDefinition):
         self.session_store = session_store
         self.form_service = form_service
@@ -39,6 +38,9 @@ class FormConversation:
             for __ in _:
                 session["count_questions"] += 1
 
+        session_bd = await self.form_service.get_form(user_id=user.id, role=self.form_def.id, status=True)
+        if session_bd:
+            session["answers"] = session_bd.content
         session_old = await self.session_store.get(user.id)
         if session_old and session_old.get("definition_id", "") != session["definition_id"]:
             await self.session_store.set_overwrite(user.id, session)
@@ -118,7 +120,7 @@ class FormConversation:
         page_fields = pages[page_idx]
         del pages
 
-        text_lines = [f'<b>{self.form_def.title}</b>\nСтраница {page_idx + 1}/{session['count_pages']}\n\n']
+        text_lines = [f'{self.form_def.title}\nСтраница анкеты{page_idx + 1}/{session['count_pages']}\n']
         for f in page_fields:
             existing = session['answers'].get(f.key)
             text_lines.append(f"{f.label}: {existing if existing else '(пусто)'}")

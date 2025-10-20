@@ -2,6 +2,8 @@ from typing import Optional, List, Any
 from pydantic import BaseModel
 from enum import Enum
 
+from src.bot.utils.busines_text import agent_desc, operator_desc
+
 
 class FieldKind(str, Enum):
     TEXT = "text"
@@ -41,7 +43,7 @@ class FormDefinition:
 # Example short form used in handlers
 operator_form = FormDefinition(
     id='operator',
-    title='(текст будет предоставлен позже)',
+    title=operator_desc + "\n",
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)]),
         Field(key='last_name', label='Фамилия', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=3)]),
@@ -52,7 +54,7 @@ operator_form = FormDefinition(
         Field(key='gpu', label='Модель видеокарты ПК', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=5)]),
         Field(key='ethernet', label='Скорость интернета (Мбит/с)', kind=FieldKind.NUMBER, validator=[ValidationRule(min_value=10)]),
         Field(key='latest_job', label='Место предыдущей работы', kind=FieldKind.TEXT),
-        Field(key='phone', label='Телефон (11 цифр, начинается с 7, без +, -, пробелов — пример: 79991234321)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),
+        Field(key='phone', label='Номер Телефон (пример: 79991234321):\n\n||(Если боитесь давать свой личный номер телефона, оформите eSIM или виртуальный номер — он нужен только для регистрации в CRM. Личные данные не требуются)||', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),
         Field(key='tg', label='Telegram (username или номер)', kind=FieldKind.TEXT),
     ],
     page_size=4
@@ -60,10 +62,10 @@ operator_form = FormDefinition(
 
 agent_form = FormDefinition(
     id='agent',
-    title='(текст будет предоставлен позже)',
+    title=agent_desc + "\n\n",
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)]),
-        Field(key='age', label='Номер телефона (11 цифр, начинается с 7)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),
+        Field(key='phone', label='Номер телефона (пример: 79991234321):\n\n||(Если боитесь давать свой личный номер телефона, оформите eSIM или виртуальный номер — он нужен только для регистрации в CRM. Личные данные не требуются)||', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),
         Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=10)]),
         Field(key='tg', label='Telegram', kind=FieldKind.TEXT),
     ],
