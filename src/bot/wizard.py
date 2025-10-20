@@ -103,6 +103,10 @@ async def run_wizard():
             text_after_command = " ".join(args[1:])
             getter_setter_admitted_users_wizard("moders.txt", write=True, data=text_after_command)
             MODER_USERNAMES.add(text_after_command)
+            text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
+            for nick in list(MODER_USERNAMES):
+                text += nick[:3] + "\n"
+            await message.reply(text)
         else:
             await message.reply("В следующий раз напиши username после команды")
 
@@ -113,6 +117,10 @@ async def run_wizard():
             text_after_command = " ".join(args[1:])
             getter_setter_admitted_users_wizard("admin.txt", write=True, data=text_after_command)
             ADMIN_USERNAMES.add(text_after_command)
+            text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
+            for nick in list(ADMIN_USERNAMES):
+                text += nick[:3] + "\n"
+            await message.reply(text)
         else:
             await message.reply("В следующий раз напиши username после команды")
 
@@ -124,6 +132,10 @@ async def run_wizard():
             if text_after_command in MODER_USERNAMES:
                 if message.from_user.username == text_after_command or message.from_user.username == ADMIN_USERNAMES:
                     MODER_USERNAMES.discard(text_after_command)
+                    text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
+                    for nick in list(MODER_USERNAMES):
+                        text += nick[:3] + "\n"
+                    await message.reply(text)
                     getter_setter_admitted_users_wizard("moders.txt", overwrite=True, data="\n".join(MODER_USERNAMES))
                 else:
                     await message.reply("Ты можешь отправить в отставку только себя")
@@ -140,6 +152,10 @@ async def run_wizard():
             if text_after_command in ADMIN_USERNAMES:
                 if message.from_user.username == text_after_command or message.from_user.username == settings.superadmin_username:
                     ADMIN_USERNAMES.discard(text_after_command)
+                    text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
+                    for nick in list(ADMIN_USERNAMES):
+                        text += nick[:3] + "\n"
+                    await message.reply(text)
                     getter_setter_admitted_users_wizard("admin.txt", overwrite=True, data="\n".join(ADMIN_USERNAMES))
                 else:
                     await message.reply("Ты можешь отправить в отставку только себя")

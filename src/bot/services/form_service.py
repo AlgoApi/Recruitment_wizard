@@ -1,9 +1,9 @@
-import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, Any, Coroutine
 
-from sqlalchemy import select, update, text
+from sqlalchemy import select, update, text, desc
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..models.db import AsyncSessionLocal
@@ -103,16 +103,19 @@ class FormService:
             last_id = result.scalar_one_or_none()
             return last_id
 
-    async def get_form(self, form_id: int = None, role: str = None, user_id: int = None, assigned_to: str = None):
+    async def get_form(self, form_id: int = None, role: str = None, user_id: int = None, assigned_to: str = None, status:bool = None) -> FormModel:
         async with AsyncSessionLocal() as session:
-            stmt = select(FormModel).where(FormModel.status.is_(None))
+            if status is not None:
+                stmt = select(FormModel).where(FormModel.status.is_not(None))
+            else:
+                stmt = select(FormModel).where(FormModel.status.is_(None))
             if form_id is not None:
                 stmt = stmt.where(FormModel.id == form_id)
             if role is not None:
                 stmt = stmt.where(FormModel.role == role)
             if user_id is not None:
                 stmt = stmt.where(FormModel.user_id == user_id)
-            if user_id is not None:
+            if assigned_to is not None:
                 stmt = stmt.where(FormModel.assigned_to == assigned_to)
 
             stmt = stmt.order_by(FormModel.created_at).limit(1)
@@ -121,15 +124,33 @@ class FormService:
             form = result.scalars().first()
             return form
 
-    async def is_cooldown(self, user_id: int, role: str, days: int = 30) -> bool:
-        async with AsyncSessionLocal() as session:
-            date_limit = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=days)
-            stmt = select(FormModel).where(FormModel.status.is_(False)).where(FormModel.user_id == user_id).where(
-                FormModel.created_at >= date_limit).where(FormModel.role == role).limit(1)
+    async def is_cooldown(self, user_id: int, role: str, hours: int = 1) -> int:
+        stmt = (
+            select(FormModel.created_at)
+            .where(FormModel.status.is_(False))
+            .where(FormModel.user_id == user_id)
+            .where(FormModel.role == role)
+            .order_by(desc(FormModel.created_at))
+            .limit(1)
+        )
 
+        async with AsyncSessionLocal() as session:
             result = await session.execute(stmt)
-            form = result.scalars().first()
-            return True if form else False
+            created_at = result.scalar_one_or_none()  # datetime или None
+
+        if created_at is None:
+            return 0
+
+        now = datetime.now(timezone.utc)
+
+        expiry = created_at + timedelta(hours=hours)
+        remaining_seconds = (expiry - now).total_seconds()
+
+        if remaining_seconds <= 0:
+            return 0
+
+        # округляем вверх до целых минут
+        return int(remaining_seconds - 1) // 60 + 1
 
     async def is_submited(self, user_id: int, role: str) -> bool:
         async with (AsyncSessionLocal() as session):
