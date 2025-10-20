@@ -30,9 +30,10 @@ class Field(BaseModel):
     default: Optional[Any] = None
 
 class FormDefinition:
-    def __init__(self, id: str, title: str, fields: List[Field], page_size: int = 5):
+    def __init__(self, id: str, title: str, video: str|None, fields: List[Field], page_size: int = 5):
         self.id = id
         self.title = title
+        self.video = video
         self.fields = fields
         self.page_size = page_size
 
@@ -44,6 +45,7 @@ class FormDefinition:
 operator_form = FormDefinition(
     id='operator',
     title=operator_desc + "\n",
+    video=None,
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)]),
         Field(key='last_name', label='Фамилия', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=3)]),
@@ -63,6 +65,7 @@ operator_form = FormDefinition(
 agent_form = FormDefinition(
     id='agent',
     title=agent_desc + "\n\n",
+    video='BAACAgIAAxkBAAIHd2j2j3kw5lUdQe2_VhSvoLWk36FJAAIyjAACwl-xS6MeFIP43Em1HgQ',
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)]),
         Field(key='phone', label='Номер телефона (пример: 79991234321):\n\n||(Если боитесь давать свой личный номер телефона, оформите eSIM или виртуальный номер — он нужен только для регистрации в CRM. Личные данные не требуются)||', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),

@@ -297,12 +297,11 @@ async def run_wizard():
     async def on_callback(client: Client, callback: CallbackQuery):
         await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
         await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
-        await callback_global_router(client, callback, form_service)
+        await callback_global_router(client, callback, form_service, session_store)
 
-    @app.on_message(filters.command("whoami") & filters.group)
-    async def whoami(client, message):
+    @app.on_message(filters.command("whoami"))
+    async def whoami(client: Client, message):
         await message.reply_text(f"CHAT -> id: {message.chat.id} type: {message.chat.type} title: {getattr(message.chat, 'title', None)}")
-        await client.send_message(chat_id=message.chat.id, text="pong")
 
     logger.info('Starting Pyrogram bot')
     await app.start()
