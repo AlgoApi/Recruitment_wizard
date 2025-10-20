@@ -46,7 +46,19 @@ class FormConversation:
             await self.session_store.set_overwrite(user.id, session)
         else:
             await self.session_store.set_initialize(user.id, session)
-        await self._send_page(client, callback.message.chat.id, user.id)
+
+        if self.form_def.video:
+            new_message = await callback.message.reply_video(video=self.form_def.video, caption=f"{self.form_def.title}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Заполнить анкету!", callback_data=f"send_questions:{session["definition_id"]}")], [InlineKeyboardButton("назад", callback_data="cmd_start")]]))
+        else:
+            new_message = await callback.message.reply(f"{self.form_def.title}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Заполнить анкету!", callback_data=f"send_questions:{session["definition_id"]}")], [InlineKeyboardButton("назад", callback_data="cmd_start")]]))
+        #await self._send_page(client, callback.message.chat.id, user.id)
+        if session['menu_id']:
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        session['menu_id'] = new_message.id
+        await self.session_store.set_overwrite(user.id, session)
 
     async def handle_message(self, client: Client, message: Message):
         user = message.from_user
@@ -120,7 +132,7 @@ class FormConversation:
         page_fields = pages[page_idx]
         del pages
 
-        text_lines = [f'{self.form_def.title}\nСтраница анкеты{page_idx + 1}/{session['count_pages']}\n']
+        text_lines = [f'Страница анкеты{page_idx + 1}/{session['count_pages']}\n']
         for f in page_fields:
             existing = session['answers'].get(f.key)
             text_lines.append(f"{f.label}: {existing if existing else '(пусто)'}")
@@ -128,19 +140,18 @@ class FormConversation:
 
         if session['menu_id']:
             try:
-                await client.edit_message_reply_markup(chat_id, session['menu_id'], reply_markup=None)
+                await client.delete_messages(chat_id, session['menu_id'])
             except MessageIdInvalid:
                 pass
 
         kb_unit = []
-        kb = [[InlineKeyboardButton('Заполнить/Изменить', callback_data=f'fill:page:{page_idx}')]]
+        kb = [[InlineKeyboardButton('Заполнить/Изменить', callback_data=f'fill:page:{page_idx}:{session["definition_id"]}')]]
 
-        if session['page'] > 0:
-            kb_unit.append(InlineKeyboardButton('Назад', callback_data='nav:prev'))
+        kb_unit.append(InlineKeyboardButton('Назад', callback_data=f'nav:prev:{session["definition_id"]}'))
         if session['page'] + 1 < session['count_pages']:
-            kb_unit.append(InlineKeyboardButton('Следующая', callback_data='nav:next'))
+            kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
-        if len(session['answers']) == session['count_questions']:
+        if len(session['answers']) - 1 == session['count_questions']:
             kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
 
         sent_message = await client.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(kb))
@@ -152,18 +163,17 @@ class FormConversation:
         kb_unit = []
         kb = []
 
-        if session['page'] > 0:
-            kb_unit.append(InlineKeyboardButton('Назад', callback_data='nav:prev'))
+        kb_unit.append(InlineKeyboardButton('Назад', callback_data=f'nav:prev:{session["definition_id"]}'))
         if session['page'] + 1 < session['count_pages']:
-            kb_unit.append(InlineKeyboardButton('Следующая', callback_data='nav:next'))
+            kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
-        if len(session['answers']) == session['count_questions']:
+        if len(session['answers']) - 1 == session['count_questions']:
             kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
 
         #await self._send_page(client, chat_id, user_id)
         if session['menu_id']:
             try:
-                await client.edit_message_reply_markup(chat_id, session['menu_id'], reply_markup=None)
+                await client.delete_messages(chat_id, session['menu_id'])
             except MessageIdInvalid:
                 pass
         sent_message = await client.send_message(chat_id, 'Страница заполнена. Что дальше?', reply_markup=InlineKeyboardMarkup(kb))

@@ -46,6 +46,28 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
     data = callback.data or ''
     user = callback.from_user
     session = await session_store.get(user.id) or {}
+    parts = data.split(':')
+
+    if data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
+        await form_conv._send_page(client, callback.message.chat.id, user.id)
+        if session['menu_id']:
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        await safe_answer(callback)
+        return
+
+    if data == "cmd_start":
+        if session['menu_id']:
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        #await cmd_start()
+        await safe_answer(callback)
+        return
+
     if data.startswith('operator:') and form_conv.form_def.id == "operator":
         command = await valid_start_role(form_service, callback, user.id, "operator", data)
         if command == "start":
@@ -64,63 +86,77 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
     elif session.get("definition_id") != form_conv.form_def.id:
         await safe_answer(callback)
         return
+
     elif session:
         if data.startswith('fill:page:'):
-            parts = data.split(':')
             page = int(parts[2])
-            session["run"] = True
-            pages = list(form_conv.form_def.pages())
-            session["question"] = 0
-            for question in pages[session['page']]:
-                all_answeres = list(session["answers"].keys())
-                for key in all_answeres:
-                    if question.key == key:
-                        session["question"] += 1
-            session['page'] = page
-
-            if session['menu_id']:
-                try:
-                    await client.delete_messages(callback.message.chat.id, session['menu_id'])
-                except MessageIdInvalid:
-                    pass
-
-            if len(pages[page]) <= session["question"]:
-                # await callback.message.reply("На этой странице всё, переходите к следующей")
-                for question in pages[page]:
+            form_name = parts[4]
+            if form_name == form_conv.form_def.id:
+                session["run"] = True
+                pages = list(form_conv.form_def.pages())
+                session["question"] = 0
+                for question in pages[session['page']]:
                     all_answeres = list(session["answers"].keys())
                     for key in all_answeres:
                         if question.key == key:
-                            session["answers"].pop(key)
-                            session["question"] -= 1
-            await session_store.set_overwrite(user.id, session)
-            await form_conv._send_page(client, callback.message.chat.id, user.id)
-            await callback.message.reply(f'Отправьте {pages[page][session["question"]].label}')
+                            session["question"] += 1
+                session['page'] = page
+
+                if session['menu_id']:
+                    try:
+                        await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                    except MessageIdInvalid:
+                        pass
+
+                if len(pages[page]) <= session["question"]:
+                    # await callback.message.reply("На этой странице всё, переходите к следующей")
+                    for question in pages[page]:
+                        all_answeres = list(session["answers"].keys())
+                        for key in all_answeres:
+                            if question.key == key:
+                                session["answers"].pop(key)
+                                session["question"] -= 1
+                await form_conv._send_page(client, callback.message.chat.id, user.id)
+                new_message = await callback.message.reply(f'Отправьте {pages[page][session["question"]].label}')
+                session['menu_id'] = new_message.id
+                await session_store.set_overwrite(user.id, session)
             await safe_answer(callback)
             return
         if data.startswith('nav:'):
-            action = data.split(':')[1]
-            if action == 'next':
-                session['page'] = session.get('page', 0) + 1
-                pages = list(form_conv.form_def.pages())
-                session["question"] = 0
-                for question in pages[session['page']]:
-                    all_answeres = list(session["answers"].keys())
-                    for key in all_answeres:
-                        if question.key == key:
-                            session["question"] += 1
-            else:
-                session['page'] = max(0, session.get('page', 0) - 1)
-                pages = list(form_conv.form_def.pages())
-                session["question"] = 0
-                for question in pages[session['page']]:
-                    all_answeres = list(session["answers"].keys())
-                    for key in all_answeres:
-                        if question.key == key:
-                            session["question"] += 1
-            session["run"] = False
-            await session_store.set_overwrite(user.id, session)
+            action = parts[1]
+            form_name = parts[2]
+            if form_name == form_conv.form_def.id:
+                if action == 'next':
+                    session['page'] = session.get('page', 0) + 1
+                    pages = list(form_conv.form_def.pages())
+                    session["question"] = 0
+                    for question in pages[session['page']]:
+                        all_answeres = list(session["answers"].keys())
+                        for key in all_answeres:
+                            if question.key == key:
+                                session["question"] += 1
+                else:
+                    if (session.get('page', 0) - 1) < 0:
+                        if session['menu_id']:
+                            try:
+                                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                            except MessageIdInvalid:
+                                pass
+                            await form_conv.start(client, callback)
+                            await callback.answer()
+                            return
+                    session['page'] = session.get('page', 0) - 1
+                    pages = list(form_conv.form_def.pages())
+                    session["question"] = 0
+                    for question in pages[session['page']]:
+                        all_answeres = list(session["answers"].keys())
+                        for key in all_answeres:
+                            if question.key == key:
+                                session["question"] += 1
+                session["run"] = False
+                await session_store.set_overwrite(user.id, session)
+                await form_conv._send_page(client, callback.message.chat.id, user.id)
             await callback.answer()
-            await form_conv._send_page(client, callback.message.chat.id, user.id)
             return
         if data == 'submit:confirm':
             form = await form_service.create_draft(user.id, user.username, session.get('definition_id', "UNDEFINED"), session.get('answers', {}))
@@ -138,7 +174,9 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 case "agent":
                     role_txt = "агента"
 
-            await callback.message.reply(anketa_sent.replace("{ROLE_NOT_ASSIGNED}", role_txt))
+            new_message = await callback.message.reply(anketa_sent.replace("{ROLE_NOT_ASSIGNED}", role_txt))
+            session['menu_id'] = new_message.id
+            await session_store.set_overwrite(user.id, session)
             await cmd_start(client, callback.message)
             if session.get('definition_id', "UNDEFINED") == 'agent':
                 header = (
@@ -178,11 +216,14 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         await callback.answer()
         return
 
-async def callback_global_router(client: Client, callback: CallbackQuery, form_service: FormService):
+async def callback_global_router(client: Client, callback: CallbackQuery, form_service: FormService, session_store: RedisSessionStore):
     data = callback.data or ''
     user = callback.from_user
     if data.startswith('info:'):
-        await callback.message.reply(base_info)
+        session = await session_store.get(user.id) or {}
+        new_message = await callback.message.reply(base_info, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("назад", callback_data="cmd_start")]]))
+        session['menu_id'] = new_message.id
+        await session_store.set_overwrite(user.id, session)
         await callback.answer()
 
     elif data.startswith('deny_reason:'):
@@ -197,8 +238,6 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         form = await form_service.get_form(form_id=form_id)
 
         user_id = form.user_id
-
-        left, sep, right = agent_desc.partition("!")
 
         deny_text = ""
         deny_key = ""
