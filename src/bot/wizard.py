@@ -2,10 +2,11 @@ import asyncio
 import logging
 import uvloop
 from pyrogram import Client, filters
-from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, MenuButtonCommands, \
+    BotCommandScopeChat, BotCommand
 
 from .models.db import init_db
-from .utils.busines_text import hello_message, cooldown_text
+from .utils.busines_text import hello_message
 from .utils.utils import format_content
 from .config import settings
 from .logging_config import setup_logging
@@ -67,17 +68,33 @@ async def run_wizard():
     @app.on_message(filters.command(['start', 'help']) & filters.private)
     async def cmd_start(client: Client, message: Message):
         text = ""
+        commands = [
+            BotCommand(command="start", description="Начать")
+        ]
+
         if message.from_user.username in ADMIN_USERNAMES:
             text += '/add_moderator <username>(без собачки) - Добавить права менеджера пользователю\n'
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
             text += '/del_admin <username>(без собачки) - Удалить права админа у пользователя\n'
+            text += '\n'
         if message.from_user.username == settings.superadmin_username.lower():
             text += '/add_admin <username>(без собачки) - Добавить права админа пользователю\n'
+            text += '\n'
         if message.from_user.username in MODER_USERNAMES:
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
             text += '/view - Просмотр пришедших анкет\n'
+            commands.append(BotCommand(command="view", description="Просмотр пришедших анкет"))
             text += '/stat[7/30/365] - Просмотр общей статистики за столько-то дней\n'
             text += '/xll[7/30/365] - Просмотр личной статистики за столько-то дней\n'
+            text += '\n'
+
+        await app.set_chat_menu_button(
+            chat_id=message.from_user.id,
+            menu_button=MenuButtonCommands()
+        )
+
+        await app.set_bot_commands(commands=commands, scope=BotCommandScopeChat(chat_id=message.from_user.id))
+
         text += hello_message
 
         kb = [

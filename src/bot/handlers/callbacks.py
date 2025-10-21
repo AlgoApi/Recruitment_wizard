@@ -48,13 +48,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
     session = await session_store.get(user.id) or {}
     parts = data.split(':')
 
-    if data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
-        await form_conv._send_page(client, callback.message.chat.id, user.id)
-        if session['menu_id']:
-            try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
-            except MessageIdInvalid:
-                pass
+    if session.get("definition_id") != form_conv.form_def.id:
         await safe_answer(callback)
         return
 
@@ -64,11 +58,52 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
             except MessageIdInvalid:
                 pass
-        #await cmd_start()
+        # await cmd_start()
         await safe_answer(callback)
         return
 
-    if data.startswith('operator:') and form_conv.form_def.id == "operator":
+    if data.startswith('trouble:'):
+        _, _, raw_id = data.split(":")
+        form_id = int(raw_id)
+
+        form = await form_service.get_form(form_id=form_id)
+
+        header = (
+            "**НЕ МОЖЕТ НАПИСАТЬ**"
+            f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"})\n"
+            f"🧑‍💼 Роль: {form.role}\n"
+            f"📌 От: @{form.username} (id: {form.user_id})\n"
+            f"🕒 Создано: {form.created_at}\n\n"
+        )
+        content_text = format_content(form.content or {}, form_conv=form_conv)
+        text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
+
+        try:
+            await client.send_message(chat_id=int(settings.admin_group_id), text=text)
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+            await client.send_message(chat_id=int(settings.admin_group_id), text=text)
+        except Forbidden:
+            logger.error("Бот не имеет прав писать в эту группу или был исключён.")
+        except Exception as e:
+            logger.error("Ошибка при отправке:", e)
+
+        await callback.message.reply_text(trouble)
+
+        await safe_answer(callback)
+        return
+
+    elif data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
+        await form_conv._send_page(client, callback.message.chat.id, user.id)
+        if session['menu_id']:
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        await safe_answer(callback)
+        return
+
+    elif data.startswith('operator:') and form_conv.form_def.id == "operator":
         command = await valid_start_role(form_service, callback, user.id, "operator", data)
         if command == "start":
             await form_conv.start(client, callback)
@@ -80,10 +115,6 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         if command == "start":
             await form_conv.start(client, callback)
 
-        await safe_answer(callback)
-        return
-
-    elif session.get("definition_id") != form_conv.form_def.id:
         await safe_answer(callback)
         return
 
@@ -122,7 +153,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 await session_store.set_overwrite(user.id, session)
             await safe_answer(callback)
             return
-        if data.startswith('nav:'):
+        elif data.startswith('nav:'):
             action = parts[1]
             form_name = parts[2]
             if form_name == form_conv.form_def.id:
@@ -158,7 +189,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 await form_conv._send_page(client, callback.message.chat.id, user.id)
             await callback.answer()
             return
-        if data == 'submit:confirm':
+        elif data == 'submit:confirm':
             form = await form_service.create_draft(user.id, user.username, session.get('definition_id', "UNDEFINED"), session.get('answers', {}))
             await form_service.submit_form(form)
             session = await session_store.pop(user.id)
@@ -201,9 +232,9 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                     await asyncio.sleep(e.value)
                     await client.send_message(chat_id=int(settings.admin_group_id), text=text, reply_markup=InlineKeyboardMarkup(kb))
                 except Forbidden:
-                    print("Бот не имеет прав писать в эту группу или был исключён.")
+                    logger.error("Бот не имеет прав писать в эту группу или был исключён.")
                 except Exception as e:
-                    print("Ошибка при отправке:", e)
+                    logger.error("Ошибка при отправке:", e)
             await safe_answer(callback)
 
             return
@@ -341,7 +372,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:
-                await safe_send_to_user(client, user_id, agent_accept)
+                await safe_send_to_user(client, user_id, agent_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to))
             '''
             DEPRECATED
             else:  # Успешно: отправляем полную анкету назначенному менеджеру

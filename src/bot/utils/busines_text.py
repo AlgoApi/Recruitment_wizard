@@ -14,6 +14,7 @@ cooldown_text = data.get("cooldown_text", "")
 wait_text = data.get("wait_text", "")
 hello_message = data.get("hello_message", "")
 base_info = data.get("base_info", "")
+trouble = data.get("trouble", "")
 
 operator_deny_reasons = data.get("operator_deny_reasons", [])
 operator_deny_reasons_text = data.get("operator_deny_reasons_text", {})
