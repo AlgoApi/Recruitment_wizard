@@ -132,7 +132,7 @@ class FormConversation:
         page_fields = pages[page_idx]
         del pages
 
-        text_lines = [f'Страница анкеты{page_idx + 1}/{session['count_pages']}\n']
+        text_lines = [f'Страница анкеты {page_idx + 1}/{session['count_pages']}\n']
         for f in page_fields:
             existing = session['answers'].get(f.key)
             text_lines.append(f"{f.label}: {existing if existing else '(пусто)'}")
