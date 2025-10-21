@@ -58,7 +58,36 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         await safe_answer(callback)
         return
 
-    if data.startswith('trouble:'):
+    elif data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
+        await form_conv._send_page(client, callback.message.chat.id, user.id)
+        if session['menu_id']:
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        await safe_answer(callback)
+        return
+
+    elif data.startswith('operator:') and form_conv.form_def.id == "operator":
+        command = await valid_start_role(form_service, callback, user.id, "operator", data)
+        if command == "start":
+            await form_conv.start(client, callback)
+
+        await safe_answer(callback)
+        return
+    elif data.startswith('agent:') and form_conv.form_def.id == "agent":
+        command = await valid_start_role(form_service, callback, user.id, "agent", data)
+        if command == "start":
+            await form_conv.start(client, callback)
+
+        await safe_answer(callback)
+        return
+
+    elif session.get("definition_id") != form_conv.form_def.id:
+        await safe_answer(callback)
+        return
+
+    elif data.startswith('trouble:'):
         _, _, raw_id = data.split(":")
         form_id = int(raw_id)
 
@@ -86,35 +115,6 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
 
         await callback.message.reply_text(trouble)
 
-        await safe_answer(callback)
-        return
-
-    elif data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
-        await form_conv._send_page(client, callback.message.chat.id, user.id)
-        if session['menu_id']:
-            try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
-            except MessageIdInvalid:
-                pass
-        await safe_answer(callback)
-        return
-
-    elif data.startswith('operator:') and form_conv.form_def.id == "operator":
-        command = await valid_start_role(form_service, callback, user.id, "operator", data)
-        if command == "start":
-            await form_conv.start(client, callback)
-
-        await safe_answer(callback)
-        return
-    elif data.startswith('agent:') and form_conv.form_def.id == "agent":
-        command = await valid_start_role(form_service, callback, user.id, "agent", data)
-        if command == "start":
-            await form_conv.start(client, callback)
-
-        await safe_answer(callback)
-        return
-
-    elif session.get("definition_id") != form_conv.form_def.id:
         await safe_answer(callback)
         return
 
@@ -208,7 +208,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
             new_message = await callback.message.reply(anketa_sent.replace("{ROLE_NOT_ASSIGNED}", role_txt))
             session['menu_id'] = new_message.id
             await session_store.set_overwrite(user.id, session)
-            await cmd_start(client, callback.message)
+            #await cmd_start(client, callback.message)
             if session.get('definition_id', "UNDEFINED") == 'agent':
                 header = (
                     f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"})\n"
@@ -253,9 +253,11 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
     if data.startswith('info:'):
         session = await session_store.get(user.id) or {}
         new_message = await callback.message.reply(base_info, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("назад", callback_data="cmd_start")]]))
+        if not session:
+            await session_store.set_initialize(user.id, session)
         session['menu_id'] = new_message.id
         await session_store.set_overwrite(user.id, session)
-        await callback.answer()
+        await safe_answer(callback)
 
     elif data.startswith('deny_reason:'):
         form_id = 0
