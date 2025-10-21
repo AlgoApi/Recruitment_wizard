@@ -227,10 +227,10 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 ]
 
                 try:
-                    await client.send_message(chat_id=int(settings.admin_group_id), text=text, reply_markup=InlineKeyboardMarkup(kb))
+                    await client.send_message(chat_id=settings.admin_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
                 except FloodWait as e:
                     await asyncio.sleep(e.value)
-                    await client.send_message(chat_id=int(settings.admin_group_id), text=text, reply_markup=InlineKeyboardMarkup(kb))
+                    await client.send_message(chat_id=settings.admin_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
                 except Forbidden:
                     logger.error("Бот не имеет прав писать в эту группу или был исключён.")
                 except Exception as e:
