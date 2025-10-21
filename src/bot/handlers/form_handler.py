@@ -151,7 +151,7 @@ class FormConversation:
         if session['page'] + 1 < session['count_pages']:
             kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
-        if len(session['answers']) - 1 == session['count_questions']:
+        if len(session['answers']) == session['count_questions']:
             kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
 
         sent_message = await client.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(kb))
@@ -167,7 +167,7 @@ class FormConversation:
         if session['page'] + 1 < session['count_pages']:
             kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
-        if len(session['answers']) - 1 == session['count_questions']:
+        if len(session['answers']) == session['count_questions']:
             kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
 
         #await self._send_page(client, chat_id, user_id)
