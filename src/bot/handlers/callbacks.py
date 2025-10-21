@@ -48,10 +48,6 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
     session = await session_store.get(user.id) or {}
     parts = data.split(':')
 
-    if session.get("definition_id") != form_conv.form_def.id:
-        await safe_answer(callback)
-        return
-
     if data == "cmd_start":
         if session.get('menu_id', None):
             try:
@@ -115,6 +111,10 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         if command == "start":
             await form_conv.start(client, callback)
 
+        await safe_answer(callback)
+        return
+
+    elif session.get("definition_id") != form_conv.form_def.id:
         await safe_answer(callback)
         return
 
