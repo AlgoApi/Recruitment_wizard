@@ -50,21 +50,21 @@ class ValidatorWizard:
 
 def phone_validator(value: str) -> tuple[bool, Optional[str]]:
     if not isinstance(value, str) or value.strip() == "":
-        return False, "Номер телефона не должен быть пустым"
+        return False, "номер телефона не должен быть пустым"
     try:
         pn = phonenumbers.parse(value, "RU")
         if not phonenumbers.is_valid_number(pn):
-            return False, "Неверно набран номер телефона"
+            return False, "неверно набран номер телефона"
         # Нормализованный формат E.164:
         normalized = phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164)
         return True, normalized
     except phonenumbers.NumberParseException as e:
-        return False, f"Phone parse error: {e}"
+        return False, f"это не похоже на номер телефона"
 
 def email_validator(value: str):
     try:
         info = validate_email(value)
         return True, info["email"]
     except EmailNotValidError:
-        return False, "Неверно набрана электронная почта"
+        return False, "неверно набрана электронная почта"
 
