@@ -59,7 +59,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         return
 
     if data == "cmd_start":
-        if session['menu_id']:
+        if session.get('menu_id', None):
             try:
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
             except MessageIdInvalid:
@@ -90,7 +90,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
     elif session:
         if data.startswith('fill:page:'):
             page = int(parts[2])
-            form_name = parts[4]
+            form_name = parts[3]
             if form_name == form_conv.form_def.id:
                 session["run"] = True
                 pages = list(form_conv.form_def.pages())
@@ -168,7 +168,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 except MessageIdInvalid:
                     pass
             role_txt = "не назначено"
-            match session["role"]:
+            match session["definition_id"]:
                 case "operator":
                     role_txt="оператора"
                 case "agent":
