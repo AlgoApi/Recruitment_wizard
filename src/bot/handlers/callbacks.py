@@ -6,7 +6,7 @@ from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMa
 from .form_handler import FormConversation
 from ..storage.session_store import RedisSessionStore
 from ..services.form_service import FormService
-from ..utils.utils import format_content
+from ..utils.utils import format_content, translate_role
 from ..utils.busines_text import *
 from ..config import settings
 
@@ -27,16 +27,30 @@ async def safe_send_to_user(client:Client, user_identifier, text_vv, reply_marku
                 logger.error(f"Ошибка отправки сообщения пользователю: {e}")
                 return False
 
-async def valid_start_role(form_service: FormService, callback: CallbackQuery, user_id, role, data):
+async def valid_start_role(client:Client, form_service: FormService, callback: CallbackQuery, session:dict, session_store:RedisSessionStore, user_id, role, data):
     parts = data.split(':')
     command = parts[1]
     if await form_service.is_submited(user_id, role):
-        await callback.message.reply_text(wait_text)
+        new_message = await callback.message.reply_text(wait_text)
+        if session['menu_id']:
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        session['menu_id'] = new_message.id
+        await session_store.set_overwrite(user_id, session)
         await safe_answer(callback)
         return ""
     expiry = await form_service.is_cooldown(user_id, role)
     if expiry > 0:
-        await callback.message.reply_text(cooldown_text + f"{expiry} минут")
+        new_message = await callback.message.reply_text(cooldown_text + f"{expiry} минут")
+        if session['menu_id']:
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        session['menu_id'] = new_message.id
+        await session_store.set_overwrite(user_id, session)
         await safe_answer(callback)
         return ""
 
@@ -69,14 +83,14 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         return
 
     elif data.startswith('operator:') and form_conv.form_def.id == "operator":
-        command = await valid_start_role(form_service, callback, user.id, "operator", data)
+        command = await valid_start_role(client, form_service, callback, session, session_store, user.id, "operator", data)
         if command == "start":
             await form_conv.start(client, callback)
 
         await safe_answer(callback)
         return
     elif data.startswith('agent:') and form_conv.form_def.id == "agent":
-        command = await valid_start_role(form_service, callback, user.id, "agent", data)
+        command = await valid_start_role(client, form_service, callback, session, session_store, user.id, "agent", data)
         if command == "start":
             await form_conv.start(client, callback)
 
@@ -198,12 +212,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                     await client.delete_messages(callback.message.chat.id, session['menu_id'])
                 except MessageIdInvalid:
                     pass
-            role_txt = "не назначено"
-            match session["definition_id"]:
-                case "operator":
-                    role_txt="оператора"
-                case "agent":
-                    role_txt = "агента"
+            role_txt = translate_role(session["definition_id", ""])
 
             new_message = await callback.message.reply(anketa_sent.replace("{ROLE_NOT_ASSIGNED}", role_txt))
             session['menu_id'] = new_message.id
