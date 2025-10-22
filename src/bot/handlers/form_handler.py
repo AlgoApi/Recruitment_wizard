@@ -25,6 +25,7 @@ class FormConversation:
     async def start(self, client: Client, callback: CallbackQuery):
         user = callback.from_user
         pages = list(self.form_def.pages())
+
         session = {
             'run': False,
             'definition_id': self.form_def.id,
@@ -42,7 +43,14 @@ class FormConversation:
         session_bd = await self.form_service.get_form(user_id=user.id, role=self.form_def.id, status=True)
         if session_bd:
             session["answers"] = session_bd.content
-        session_old = await self.session_store.get(user.id)
+        session_old = await self.session_store.get(user.id) or {}
+
+        if session_old.get('menu_id', None):
+            try:
+                await client.delete_messages(callback.message.chat.id, session_old['menu_id'])
+            except MessageIdInvalid:
+                pass
+
         if session_old and session_old.get("definition_id", "") != session["definition_id"]:
             await self.session_store.set_overwrite(user.id, session)
         else:
