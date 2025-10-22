@@ -156,7 +156,7 @@ class FormConversation:
         kb_unit = []
         kb = []
 
-        if len(session['answers']) == session['count_questions']:
+        if len(session['answers']) >= session['count_questions']:
             kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
 
         kb.append([InlineKeyboardButton('Заполнить/Изменить', callback_data=f'fill:page:{page_idx}:{session["definition_id"]}')])
