@@ -212,7 +212,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                     await client.delete_messages(callback.message.chat.id, session['menu_id'])
                 except MessageIdInvalid:
                     pass
-            role_txt = translate_role(session["definition_id", ""])
+            role_txt = translate_role(session.get("definition_id", ""))
 
             new_message = await callback.message.reply(anketa_sent.replace("{ROLE_NOT_ASSIGNED}", role_txt))
             session['menu_id'] = new_message.id
