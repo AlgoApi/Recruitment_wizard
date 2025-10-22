@@ -62,6 +62,28 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
     session = await session_store.get(user.id) or {}
     parts = data.split(':')
 
+    form_not_match = False
+
+    if data.startswith('operator:') and form_conv.form_def.id == "operator":
+        command = await valid_start_role(client, form_service, callback, session, session_store, user.id, "operator",
+                                         data)
+        if command == "start":
+            await form_conv.start(client, callback)
+
+        await safe_answer(callback)
+        return
+    elif data.startswith('agent:') and form_conv.form_def.id == "agent":
+        command = await valid_start_role(client, form_service, callback, session, session_store, user.id, "agent", data)
+        if command == "start":
+            await form_conv.start(client, callback)
+
+        await safe_answer(callback)
+        return
+
+    else:
+        if data.startswith('agent:') or data.startswith('operator:'):
+            form_not_match = True
+
     if data == "cmd_start":
         if session.get('menu_id', None):
             try:
@@ -82,20 +104,6 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         await safe_answer(callback)
         return
 
-    elif data.startswith('operator:') and form_conv.form_def.id == "operator":
-        command = await valid_start_role(client, form_service, callback, session, session_store, user.id, "operator", data)
-        if command == "start":
-            await form_conv.start(client, callback)
-
-        await safe_answer(callback)
-        return
-    elif data.startswith('agent:') and form_conv.form_def.id == "agent":
-        command = await valid_start_role(client, form_service, callback, session, session_store, user.id, "agent", data)
-        if command == "start":
-            await form_conv.start(client, callback)
-
-        await safe_answer(callback)
-        return
 
     elif session.get("definition_id") != form_conv.form_def.id:
         await safe_answer(callback)
@@ -245,14 +253,18 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 except Exception as e:
                     logger.error("Ошибка при отправке:", e)
             await safe_answer(callback)
-
             return
+        else:
+            if not form_not_match:
+                await callback.message.reply("Нажми /start <-")
+                await safe_answer(callback)
+                return
     elif data == 'submit:cancel':
         await callback.message.reply('Отправка отменена.')
         await callback.answer()
         return
     else:
-        await callback.message.reply('Отправьте /start <- тык')
+        await callback.message.reply('Нажми /start <- тык')
         await callback.answer()
         return
 
