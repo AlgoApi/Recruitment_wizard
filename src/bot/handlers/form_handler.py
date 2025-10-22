@@ -154,14 +154,18 @@ class FormConversation:
                 pass
 
         kb_unit = []
-        kb = [[InlineKeyboardButton('Заполнить/Изменить', callback_data=f'fill:page:{page_idx}:{session["definition_id"]}')]]
+        kb = []
+
+        if len(session['answers']) == session['count_questions']:
+            kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
+
+        kb.append([InlineKeyboardButton('Заполнить/Изменить', callback_data=f'fill:page:{page_idx}:{session["definition_id"]}')])
 
         kb_unit.append(InlineKeyboardButton('Назад', callback_data=f'nav:prev:{session["definition_id"]}'))
         if session['page'] + 1 < session['count_pages']:
             kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
-        if len(session['answers']) == session['count_questions']:
-            kb.append([InlineKeyboardButton('Отправить', callback_data='submit:confirm')])
+
 
         sent_message = await client.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(kb))
         session['menu_id'] = sent_message.id
