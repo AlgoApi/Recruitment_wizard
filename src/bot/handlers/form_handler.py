@@ -9,6 +9,7 @@ from ..forms.definition import FormDefinition, FieldKind
 from ..forms.validators import ValidatorWizard, email_validator, phone_validator
 from ..services.form_service import FormService
 from ..storage.session_store import RedisSessionStore
+from ..utils.utils import translate_role
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ class FormConversation:
         page_fields = pages[page_idx]
         del pages
 
-        text_lines = [f'Страница анкеты {page_idx + 1}/{session['count_pages']}\n']
+        text_lines = [f'Заполняем {translate_role(session.get("definition_id", ""))}\nСтраница анкеты {page_idx + 1}/{session['count_pages']}\n']
         for f in page_fields:
             existing = session['answers'].get(f.key)
             text_lines.append(f"{f.label}: {existing if existing else '(пусто)'}")
@@ -160,6 +161,7 @@ class FormConversation:
 
     async def _send_page_controls(self, client, chat_id: int, user_id: int, session: dict):
         # After page complete, show navigation and submit
+        '''
         kb_unit = []
         kb = []
 
@@ -177,8 +179,9 @@ class FormConversation:
             except MessageIdInvalid:
                 pass
         sent_message = await client.send_message(chat_id, 'Страница заполнена. Что дальше?', reply_markup=InlineKeyboardMarkup(kb))
-        session['menu_id'] = sent_message.id
-        await self.session_store.set_overwrite(user_id, session)
+        '''
+
+        await self._send_page(client, chat_id, user_id)
 
     async def _goto_next_page(self, user_id: int, client, chat_id: int):
         session = await self.session_store.get(user_id)
