@@ -58,6 +58,8 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
 
 async def callback_router(client: Client, callback: CallbackQuery, session_store: RedisSessionStore, form_conv: FormConversation, form_service: FormService, cmd_start: callable):
     data = callback.data or ''
+    if data.startswith("info"):
+        return
     user = callback.from_user
     session = await session_store.get(user.id) or {}
     parts = data.split(':')
