@@ -130,7 +130,11 @@ class FormConversation:
         if all_answered:
             await self._send_page_controls(client, message.chat.id, user.id, session)
         else:
-            await message.reply(f'{target.label} - принято!\nОтправьте {page_fields[session['question']].label}:')
+            new_needed_vl = page_fields[session['question']].label
+            text = f'{target.label} - принято!\nОтправьте {new_needed_vl}:'
+            if new_needed_vl.startswith("phone"):
+                text += "||(Если боитесь давать свой личный номер телефона, оформите eSIM или виртуальный номер — он нужен только для регистрации в CRM. Личные данные не требуются)||"
+            await message.reply(text)
 
     async def _send_page(self, client, chat_id: int, user_id: int):
         session = await self.session_store.get(user_id)

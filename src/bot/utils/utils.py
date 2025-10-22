@@ -37,7 +37,7 @@ def translate_fields(key:str, form_conv: FormConversation):
 def translate_role(txt:str) -> str:
     match txt:
         case "agent":
-            return "Агента!"
+            return "огента"
         case "operator":
-            return "Оператора!"
+            return "оператора"
     return ""
