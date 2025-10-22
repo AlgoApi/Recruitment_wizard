@@ -104,10 +104,10 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
 
         try:
-            await client.send_message(chat_id=int(settings.admin_group_id), text=text)
+            await client.send_message(chat_id=settings.admin_group_id, text=text)
         except FloodWait as e:
             await asyncio.sleep(e.value)
-            await client.send_message(chat_id=int(settings.admin_group_id), text=text)
+            await client.send_message(chat_id=settings.admin_group_id, text=text)
         except Forbidden:
             logger.error("Бот не имеет прав писать в эту группу или был исключён.")
         except Exception as e:
