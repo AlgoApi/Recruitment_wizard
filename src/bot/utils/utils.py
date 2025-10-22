@@ -1,4 +1,8 @@
-from ..handlers.form_handler import FormConversation
+from ..forms.definition import FormDefinition
+
+class FormConversation:
+    def __init__(self, form_def: FormDefinition):
+        self.form_def = form_def
 
 
 def format_content(content: dict, form_conv: FormConversation, indent: int = 0) -> str:
