@@ -32,7 +32,7 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
     command = parts[1]
     if await form_service.is_submited(user_id, role):
         new_message = await callback.message.reply_text(wait_text)
-        if session['menu_id']:
+        if session.get('menu_id'):
             try:
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
             except MessageIdInvalid:
@@ -44,7 +44,7 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
     expiry = await form_service.is_cooldown(user_id, role)
     if expiry > 0:
         new_message = await callback.message.reply_text(cooldown_text + f"{expiry} минут")
-        if session['menu_id']:
+        if session.get('menu_id'):
             try:
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
             except MessageIdInvalid:
