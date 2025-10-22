@@ -61,11 +61,6 @@ class FormConversation:
         else:
             new_message = await callback.message.reply(f"{self.form_def.title}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Заполнить анкету!", callback_data=f"send_questions:{session["definition_id"]}")], [InlineKeyboardButton("назад", callback_data="cmd_start")]]))
         #await self._send_page(client, callback.message.chat.id, user.id)
-        if session['menu_id']:
-            try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
-            except MessageIdInvalid:
-                pass
         session['menu_id'] = new_message.id
         await self.session_store.set_overwrite(user.id, session)
 
@@ -125,7 +120,6 @@ class FormConversation:
         session['question'] += 1
         await self.session_store.set_overwrite(user.id, session)
 
-        # If this page is fully answered, offer controls
         all_answered = all(f.key in session['answers'] for f in page_fields)
         if all_answered:
             await self._send_page_controls(client, message.chat.id, user.id, session)
@@ -149,6 +143,8 @@ class FormConversation:
         for f in page_fields:
             existing = session['answers'].get(f.key)
             text_lines.append(f"{f.label}: {existing if existing else '(пусто)'}")
+            if f.label.startswith("phone"):
+                text_lines.append("\n||(Если боитесь давать свой личный номер телефона, оформите eSIM или виртуальный номер — он нужен только для регистрации в CRM. Личные данные не требуются)||\n")
         text = '\n'.join(text_lines)
 
         if session['menu_id']:
