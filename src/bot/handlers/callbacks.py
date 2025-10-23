@@ -397,7 +397,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:
-                await safe_send_to_user(client, user_id, agent_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to))
+                await safe_send_to_user(client, user_id, agent_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
             '''
             DEPRECATED
             else:  # Успешно: отправляем полную анкету назначенному менеджеру
