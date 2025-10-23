@@ -112,7 +112,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         return
 
     elif data.startswith('trouble:'):
-        _, _, raw_id = data.split(":")
+        _, raw_id = data.split(":")
         form_id = int(raw_id)
 
         form = await form_service.get_form(form_id=form_id)
