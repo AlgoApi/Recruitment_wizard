@@ -116,29 +116,30 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         _, raw_id = data.split(":")
         form_id = int(raw_id)
 
-        form = await form_service.get_form(form_id=form_id)
+        form = await form_service.get_form(form_id=form_id, status=True)
 
-        header = (
-            "**НЕ МОЖЕТ НАПИСАТЬ**"
-            f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"})\n"
-            f"🧑‍💼 Роль: {form.role}\n"
-            f"📌 От: @{form.username} (id: {form.user_id})\n"
-            f"🕒 Создано: {form.created_at}\n\n"
-        )
-        content_text = format_content(form.content or {}, form_conv=form_conv)
-        text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
+        if form.role == form_conv.form_def.id:
+            header = (
+                "**❗НЕ МОЖЕТ НАПИСАТЬ❗**\n"
+                f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"})\n"
+                f"🧑‍💼 Роль: {form.role}\n"
+                f"📌 От: @{form.username} (id: {form.user_id})\n"
+                f"🕒 Создано: {form.created_at}\n\n"
+            )
+            content_text = format_content(form.content or {}, form_conv=form_conv)
+            text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
 
-        try:
-            await client.send_message(chat_id=settings.admin_group_id, text=text)
-        except FloodWait as e:
-            await asyncio.sleep(e.value)
-            await client.send_message(chat_id=settings.admin_group_id, text=text)
-        except Forbidden:
-            logger.error("Бот не имеет прав писать в эту группу или был исключён.")
-        except Exception as e:
-            logger.error("Ошибка при отправке:", e)
+            try:
+                await client.send_message(chat_id=settings.admin_group_id, text=text)
+            except FloodWait as e:
+                await asyncio.sleep(e.value)
+                await client.send_message(chat_id=settings.admin_group_id, text=text)
+            except Forbidden:
+                logger.error("Бот не имеет прав писать в эту группу или был исключён.")
+            except Exception as e:
+                logger.error("Ошибка при отправке:", e)
 
-        await callback.message.reply_text(trouble)
+            await callback.message.reply_text(trouble)
 
         await safe_answer(callback)
         return
