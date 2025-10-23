@@ -62,6 +62,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         return
     user = callback.from_user
     session = await session_store.get(user.id) or {}
+    session_role = session.get("definition_id", None)
     parts = data.split(':')
 
     form_not_match = False
@@ -107,7 +108,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         return
 
 
-    elif session.get("definition_id") != form_conv.form_def.id:
+    elif session_role and session_role != form_conv.form_def.id:
         await safe_answer(callback)
         return
 
