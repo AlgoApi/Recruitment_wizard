@@ -49,7 +49,7 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
     parts = data.split(':')
     command = parts[1]
     if await form_service.is_submited(user_id, role):
-        new_message = await callback.message.reply_text(wait_text)
+        new_message = await callback.message.reply_text(wait_text.replace("{ROLE_NOT_ASSIGNED}", translate_role(role)))
         if session.get('menu_id'):
             try:
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
