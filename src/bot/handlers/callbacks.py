@@ -31,7 +31,7 @@ async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: in
             peer=peer,
             message=text,
             random_id=random_id,
-            top_msg_id=topic_init_msg_id
+            reply_to_msg_id=topic_init_msg_id
         )
     )
     return True
