@@ -119,7 +119,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
             except MessageIdInvalid:
                 pass
-        await cmd_start()
+        await cmd_start(client, callback.message)
         await safe_answer(callback)
         return
 
@@ -309,7 +309,14 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
     if data.startswith('info:'):
         _, action = data.split(':')
         session = await session_store.get(user.id) or {}
-        kb = [[InlineKeyboardButton("назад", callback_data="cmd_start_exec")]]
+
+        if session.get('menu_id', None):
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+
+        kb = [[InlineKeyboardButton("назад", callback_data="cmd_start")]]
 
         if action == "info":
             kb.append([InlineKeyboardButton("Партнёрство", callback_data="info:partner"),
