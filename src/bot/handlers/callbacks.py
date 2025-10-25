@@ -113,6 +113,15 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         # await cmd_start()
         await safe_answer(callback)
         return
+    if data == "cmd_start_exec":
+        if session.get('menu_id', None):
+            try:
+                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+            except MessageIdInvalid:
+                pass
+        await cmd_start()
+        await safe_answer(callback)
+        return
 
     elif data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
         await form_conv._send_page(client, callback.message.chat.id, user.id)
@@ -300,7 +309,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
     if data.startswith('info:'):
         _, action = data.split(':')
         session = await session_store.get(user.id) or {}
-        kb = [[InlineKeyboardButton("назад", callback_data="cmd_start")]]
+        kb = [[InlineKeyboardButton("назад", callback_data="cmd_start_exec")]]
 
         if action == "info":
             kb.append([InlineKeyboardButton("Партнёрство", callback_data="info:partner"),
