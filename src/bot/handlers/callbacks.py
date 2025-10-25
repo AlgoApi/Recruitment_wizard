@@ -25,7 +25,7 @@ async def safe_answer(callback: CallbackQuery):
 
 async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: int, text: str):
     peer = await client.resolve_peer(chat_id)
-    random_id = random.getrandbits(64)
+    random_id = random.getrandbits(32)
     await client.invoke(
         SendMessage_Raw(
             peer=peer,
