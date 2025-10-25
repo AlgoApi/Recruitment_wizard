@@ -209,6 +209,7 @@ __marimo__/
 
 *.env
 *.session
+*.old
 logs
 .idea
 __pycache__
