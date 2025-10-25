@@ -1,8 +1,12 @@
 import asyncio
 import logging
+import random
+
 from pyrogram import Client
 from pyrogram.errors import MessageIdInvalid, QueryIdInvalid, FloodWait, Forbidden
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.raw.functions.messages import SendMessage as SendMessage_Raw
+
 from .form_handler import FormConversation
 from ..storage.session_store import RedisSessionStore
 from ..services.form_service import FormService
@@ -19,13 +23,26 @@ async def safe_answer(callback: CallbackQuery):
         pass
     return
 
+async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: int, text: str):
+    peer = await client.resolve_peer(chat_id)
+    random_id = random.getrandbits(64)
+    await client.invoke(
+        SendMessage_Raw(
+            peer=peer,
+            message=text,
+            random_id=random_id,
+            top_msg_id=topic_init_msg_id
+        )
+    )
+    return True
+
 async def safe_send_to_user(client:Client, user_identifier, text_vv, reply_markup_v:InlineKeyboardMarkup=None):
-            try:
-                await client.send_message(chat_id=user_identifier, text=text_vv, reply_markup=reply_markup_v)
-                return True
-            except Exception as e:
-                logger.error(f"Ошибка отправки сообщения пользователю: {e}")
-                return False
+        try:
+            await client.send_message(chat_id=user_identifier, text=text_vv, reply_markup=reply_markup_v)
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка отправки сообщения пользователю: {e}")
+            return False
 
 async def valid_start_role(client:Client, form_service: FormService, callback: CallbackQuery, session:dict, session_store:RedisSessionStore, user_id, role, data):
     parts = data.split(':')
@@ -129,18 +146,19 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
             content_text = format_content(form.content or {}, form_conv=form_conv)
             text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
 
-            try:
-                await client.send_message(chat_id=settings.admin_group_id, text=text)
-            except FloodWait as e:
-                await asyncio.sleep(e.value)
-                await client.send_message(chat_id=settings.admin_group_id, text=text)
-            except Forbidden:
-                logger.error("Бот не имеет прав писать в эту группу или был исключён.")
-            except Exception as e:
-                logger.error("Ошибка при отправке:", e)
-
+            if form.role == "operator":
+                await client.send_message(chat_id=form.assigned_to, text=text)
+            elif form.role == "agent":
+                try:
+                    await send_text_to_topic(client, chat_id=settings.group_id, topic_init_msg_id=settings.agent_group_id, text=text)
+                except FloodWait as e:
+                    await asyncio.sleep(e.value)
+                    await send_text_to_topic(client, chat_id=settings.group_id, topic_init_msg_id=settings.agent_group_id, text=text)
+                except Forbidden:
+                    logger.error("Бот не имеет прав писать в эту группу или был исключён.")
+                except Exception as e:
+                    logger.error("Ошибка при отправке:", e)
             await callback.message.reply_text(trouble)
-
         await safe_answer(callback)
         return
 
@@ -248,14 +266,18 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 ]
 
                 try:
-                    await client.send_message(chat_id=settings.admin_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
+                    await send_text_to_topic(client, chat_id=settings.group_id,
+                                             topic_init_msg_id=settings.agent_group_id, text=text)
                 except FloodWait as e:
                     await asyncio.sleep(e.value)
-                    await client.send_message(chat_id=settings.admin_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
+                    await send_text_to_topic(client, chat_id=settings.group_id,
+                                             topic_init_msg_id=settings.agent_group_id, text=text)
                 except Forbidden:
                     logger.error("Бот не имеет прав писать в эту группу или был исключён.")
                 except Exception as e:
                     logger.error("Ошибка при отправке:", e)
+            elif session.get('definition_id', "UNDEFINED") == 'operator':
+                await client.send_message(chat_id=form.assigned_to, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to))
             await safe_answer(callback)
             return
         else:
@@ -268,7 +290,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
         await callback.answer()
         return
     else:
-        await callback.message.reply('Нажми /start <- тык')
+        #await callback.message.reply('Нажми /start <- тык')
         await callback.answer()
         return
 
@@ -276,8 +298,27 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
     data = callback.data or ''
     user = callback.from_user
     if data.startswith('info:'):
+        _, action = data.split(':')
         session = await session_store.get(user.id) or {}
-        new_message = await callback.message.reply(base_info, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("назад", callback_data="cmd_start")]]))
+        kb = [[InlineKeyboardButton("назад", callback_data="cmd_start")]]
+
+        if action == "info":
+            kb.append([InlineKeyboardButton("Партнёрство", callback_data="info:partner"),
+               InlineKeyboardButton("Обращение", callback_data="info:message")])
+            kb.append([InlineKeyboardButton("Помощь", callback_data="info:help")])
+
+            new_message = await callback.message.reply(base_info, reply_markup=InlineKeyboardMarkup(kb))
+        elif action == "partner":
+            new_message = await callback.message.reply(partner_info, reply_markup=InlineKeyboardMarkup(kb))
+            await send_text_to_topic(client, settings.group_id, settings.partner_group_id, f"@{user.username} Заявляет о желании в партнёрстве, напишите в лс")
+        elif action == "message":
+            new_message = await callback.message.reply(message_info, reply_markup=InlineKeyboardMarkup(kb))
+            await send_text_to_topic(client, settings.group_id, settings.message_group_id,
+                                      f"@{user.username} Хочет передать обращение, напишите в лс")
+        else: # always help!
+            new_message = await callback.message.reply(help_info, reply_markup=InlineKeyboardMarkup(kb))
+            await send_text_to_topic(client, settings.group_id, settings.help_group_id,
+                                      f"@{user.username} Необходима ПОМОЩЬ, напишите в лс")
         if not session:
             await session_store.set_initialize(user.id, session)
         session['menu_id'] = new_message.id
@@ -301,6 +342,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         deny_key = ""
 
         i = 0
+        give_a_new_rec = ""
         match form.role:
             case "agent":
                 for key, text in agent_deny_reasons_text.items():
@@ -308,15 +350,18 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                         deny_text = text
                         deny_key = key
                     i += 1
+                give_a_new_rec = "operator"
             case "operator":
                 for key, text in operator_deny_reasons_text.items():
                     if i == int(reason):
                         deny_text = text
                         deny_key = key
                     i += 1
+                give_a_new_rec = "agent"
 
         text_to_user = deny_text
-        await safe_send_to_user(client, user_id, text_to_user)
+        kb = InlineKeyboardMarkup([[InlineKeyboardButton("Интересно!", callback_data=f"{give_a_new_rec}:start")]])
+        await safe_send_to_user(client, user_id, text_to_user, reply_markup_v=kb)
 
         await form_service.update_form(form_id, None, False)
 

@@ -15,6 +15,11 @@ wait_text = data.get("wait_text", "")
 hello_message = data.get("hello_message", "")
 base_info = data.get("base_info", "")
 trouble = data.get("trouble", "")
+help_info = data.get("help_info", "")
+message_info = data.get("message_info", "")
+partner_info = data.get("partner_info", "")
+
+operator_new_anketa = data.get("operator_new_anketa", "")
 
 operator_deny_reasons = data.get("operator_deny_reasons", [])
 operator_deny_reasons_text = data.get("operator_deny_reasons_text", {})

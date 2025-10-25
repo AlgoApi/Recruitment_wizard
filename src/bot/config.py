@@ -12,7 +12,11 @@ class Settings(BaseSettings):
     redis_url: str
     log_level: str = "INFO"
     superadmin_username: str = "algoapi"
-    admin_group_id: int
+    group_id: int
+    help_group_id: int
+    message_group_id: int
+    partner_group_id: int
+    agent_group_id: int
 
 field_names = list(Settings.model_fields.keys())
 

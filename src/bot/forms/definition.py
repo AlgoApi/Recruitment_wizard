@@ -30,12 +30,13 @@ class Field(BaseModel):
     default: Optional[Any] = None
 
 class FormDefinition:
-    def __init__(self, id: str, title: str, video: str|None, fields: List[Field], page_size: int = 5):
+    def __init__(self, id: str, title: str, video: str|None, fields: List[Field], page_size: int = 5, new_rec_needed:bool=False):
         self.id = id
         self.title = title
         self.video = video
         self.fields = fields
         self.page_size = page_size
+        self.new_rec_needed = new_rec_needed
 
     def pages(self):
         for i in range(0, len(self.fields), self.page_size):
@@ -64,6 +65,7 @@ operator_form = FormDefinition(
 agent_form = FormDefinition(
     id='agent',
     title=agent_desc + "\n\n",
+    new_rec_needed=True,
     video='BAACAgIAAxkBAAIHd2j2j3kw5lUdQe2_VhSvoLWk36FJAAIyjAACwl-xS6MeFIP43Em1HgQ',
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)]),
