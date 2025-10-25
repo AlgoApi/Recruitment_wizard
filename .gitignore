@@ -1,5 +1,6 @@
 *.env
 *.session
+*.old
 logs
 .venv
 .idea
