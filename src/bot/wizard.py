@@ -300,6 +300,7 @@ async def run_wizard():
                 chat_id=message.chat.id,
                 text=text,
                 reply_markup=InlineKeyboardMarkup(kb),
+                protect_content=True
             )
         except Exception as e:
             await message.reply_text(f"Ошибка при отправке заявки #{form.id}: {e}")

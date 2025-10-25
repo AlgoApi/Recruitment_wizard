@@ -23,7 +23,7 @@ async def safe_answer(callback: CallbackQuery):
         pass
     return
 
-async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: int, text: str):
+async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: int, text: str, reply_markup:InlineKeyboardMarkup=None):
     peer = await client.resolve_peer(chat_id)
     random_id = random.getrandbits(32)
     await client.invoke(
@@ -31,7 +31,8 @@ async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: in
             peer=peer,
             message=text,
             random_id=random_id,
-            reply_to_msg_id=topic_init_msg_id
+            reply_to_msg_id=topic_init_msg_id,
+            reply_markup=reply_markup
         )
     )
     return True
@@ -276,11 +277,11 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
 
                 try:
                     await send_text_to_topic(client, chat_id=settings.group_id,
-                                             topic_init_msg_id=settings.agent_group_id, text=text)
+                                             topic_init_msg_id=settings.agent_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
                 except FloodWait as e:
                     await asyncio.sleep(e.value)
                     await send_text_to_topic(client, chat_id=settings.group_id,
-                                             topic_init_msg_id=settings.agent_group_id, text=text)
+                                             topic_init_msg_id=settings.agent_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
                 except Forbidden:
                     logger.error("Бот не имеет прав писать в эту группу или был исключён.")
                 except Exception as e:
