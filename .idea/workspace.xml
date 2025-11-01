@@ -9,8 +9,7 @@
   <component name="ChangeListManager">
     <list default="true" id="c3dd7351-2bed-417b-8356-b3904a04f762" name="Changes" comment="UX/UI">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bot/forms/definition.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/forms/definition.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bot/wizard.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/wizard.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bot/handlers/callbacks.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/handlers/callbacks.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -169,9 +168,9 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.main" />
       <item itemvalue="Python.check_redis_stack" />
       <item itemvalue="Python.config" />
-      <item itemvalue="Python.main" />
       <item itemvalue="Python.wizard" />
     </list>
     <recent_temporary>
@@ -499,57 +498,57 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>292</line>
+          <line>316</line>
           <option name="timeStamp" value="202" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>294</line>
+          <line>318</line>
           <option name="timeStamp" value="215" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>203</line>
+          <line>227</line>
           <option name="timeStamp" value="217" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>242</line>
+          <line>266</line>
           <option name="timeStamp" value="218" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>137</line>
+          <line>161</line>
           <option name="timeStamp" value="220" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>126</line>
+          <line>150</line>
           <option name="timeStamp" value="221" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>107</line>
+          <line>131</line>
           <option name="timeStamp" value="222" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>103</line>
+          <line>127</line>
           <option name="timeStamp" value="223" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>139</line>
+          <line>163</line>
           <option name="timeStamp" value="229" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>147</line>
+          <line>171</line>
           <option name="timeStamp" value="230" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>141</line>
+          <line>165</line>
           <option name="timeStamp" value="231" />
         </line-breakpoint>
       </breakpoints>
