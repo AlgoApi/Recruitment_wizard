@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import random
+from typing import Sequence
 
 from pyrogram import Client
 from pyrogram.errors import MessageIdInvalid, QueryIdInvalid, FloodWait, Forbidden
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.raw.functions.messages import SendMessage as SendMessage_Raw
+from pyrogram.raw import functions, types as raw_types
 
 from .form_handler import FormConversation
 from ..storage.session_store import RedisSessionStore
@@ -23,16 +25,38 @@ async def safe_answer(callback: CallbackQuery):
         pass
     return
 
-async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: int, text: str, reply_markup:InlineKeyboardMarkup=None):
+async def make_raw_reply_markup(kb: Sequence[Sequence[InlineKeyboardButton]]):
+    """
+    Конвертирует структуру клавиатуры (список строк, каждая строка — список InlineKeyboardButton)
+    в raw.types.ReplyInlineMarkup, который можно передать в functions.messages.SendMessage.
+    """
+    rows = []
+    for row in kb:
+        raw_buttons = []
+        for btn in row:
+            if not isinstance(btn.callback_data, (bytes, bytearray)):
+                data = (btn.callback_data or "").encode("utf-8")
+            else:
+                data = btn.callback_data
+            raw_buttons.append(raw_types.KeyboardButtonCallback(text=btn.text, data=data))
+        rows.append(raw_types.KeyboardButtonRow(buttons=raw_buttons))
+    return raw_types.ReplyInlineMarkup(rows=rows)
+
+async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: int, text: str, kb: Sequence[Sequence[InlineKeyboardButton]] | None = None):
     peer = await client.resolve_peer(chat_id)
     random_id = random.getrandbits(32)
+
+    raw_reply = None
+    if kb:
+        raw_reply = await make_raw_reply_markup(kb)
+
     await client.invoke(
         SendMessage_Raw(
             peer=peer,
             message=text,
             random_id=random_id,
             reply_to_msg_id=topic_init_msg_id,
-            reply_markup=reply_markup
+            reply_markup=raw_reply
         )
     )
     return True
@@ -276,12 +300,12 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 ]
 
                 try:
-                    await send_text_to_topic(client, chat_id=settings.group_id,
-                                             topic_init_msg_id=settings.agent_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
+                    await send_text_to_topic(client=client, chat_id=settings.group_id,
+                                             topic_init_msg_id=settings.agent_group_id, text=text, kb=kb)
                 except FloodWait as e:
                     await asyncio.sleep(e.value)
-                    await send_text_to_topic(client, chat_id=settings.group_id,
-                                             topic_init_msg_id=settings.agent_group_id, text=text, reply_markup=InlineKeyboardMarkup(kb))
+                    await send_text_to_topic(client=client, chat_id=settings.group_id,
+                                             topic_init_msg_id=settings.agent_group_id, text=text, kb=kb)
                 except Forbidden:
                     logger.error("Бот не имеет прав писать в эту группу или был исключён.")
                 except Exception as e:
