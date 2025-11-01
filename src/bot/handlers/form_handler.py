@@ -166,8 +166,17 @@ class FormConversation:
             kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
 
-
-        sent_message = await client.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(kb))
+        if page_fields[0].animation:
+            sent_message = await client.send_animation(chat_id=chat_id, caption=text, reply_markup=InlineKeyboardMarkup(kb),
+                                                   animation=page_fields[0].animation)
+        elif page_fields[0].video:
+            sent_message = await client.send_video(chat_id=chat_id, caption=text, reply_markup=InlineKeyboardMarkup(kb),
+                                                   video=page_fields[0].video)
+        elif page_fields[0].photo:
+            sent_message = await client.send_photo(chat_id=chat_id, caption=text, reply_markup=InlineKeyboardMarkup(kb),
+                                                   photo=page_fields[0].photo)
+        else:
+            sent_message = await client.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(kb))
         session['menu_id'] = sent_message.id
         await self.session_store.set_overwrite(user_id, session)
 

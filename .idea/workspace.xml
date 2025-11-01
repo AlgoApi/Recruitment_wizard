@@ -7,13 +7,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c3dd7351-2bed-417b-8356-b3904a04f762" name="Changes" comment="init">
-      <change afterPath="$PROJECT_DIR$/.idea/Recruitment_wizard.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="c3dd7351-2bed-417b-8356-b3904a04f762" name="Changes" comment="UX/UI">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Recruitment_wizard.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Recruitment_wizard.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bot/forms/definition.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/forms/definition.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bot/handlers/form_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/handlers/form_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bot/wizard.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/wizard.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +24,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Python Script" />
+        <option value="Dockerfile" />
       </list>
     </option>
   </component>
@@ -58,11 +59,12 @@
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;Python.check_redis_stack.executor&quot;: &quot;Run&quot;,
     &quot;Python.config.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHELLCHECK.PATH&quot;: &quot;/home/algoapi/.local/share/JetBrains/PyCharm2025.1/Shell Script/shellcheck&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/algoapi/PycharmProjects/Recruitment_wizard/src/bot/utils&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/algoapi/PycharmProjects/Recruitment_wizard/src/bot/forms&quot;,
     &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;
   }
 }</component>
@@ -72,6 +74,7 @@
       <recent name="$PROJECT_DIR$/src/bot/security" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/src" />
       <recent name="$PROJECT_DIR$/" />
       <recent name="$PROJECT_DIR$/src/bot/utils" />
@@ -205,7 +208,247 @@
       <option name="project" value="LOCAL" />
       <updated>1760410322377</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="I'm tired of writing comments">
+      <option name="closed" value="true" />
+      <created>1760928226699</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1760928226699</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Video support&#10;User friandly UI/UX">
+      <option name="closed" value="true" />
+      <created>1760989756038</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1760989756038</updated>
+    </task>
+    <task id="LOCAL-00004" summary="oups">
+      <option name="closed" value="true" />
+      <created>1761025364778</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1761025364778</updated>
+    </task>
+    <task id="LOCAL-00005" summary="implemented trouble button&#10;optimized callbacks logic&#10;implemented telegram menu button">
+      <option name="closed" value="true" />
+      <created>1761076311468</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1761076311468</updated>
+    </task>
+    <task id="LOCAL-00006" summary="oups">
+      <option name="closed" value="true" />
+      <created>1761076852324</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1761076852324</updated>
+    </task>
+    <task id="LOCAL-00007" summary="oups&#10;fix back button on info&#10;fix callbacks logic">
+      <option name="closed" value="true" />
+      <created>1761077794192</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1761077794192</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Z">
+      <option name="closed" value="true" />
+      <created>1761078016320</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1761078016320</updated>
+    </task>
+    <task id="LOCAL-00009" summary="oupsi">
+      <option name="closed" value="true" />
+      <created>1761104355797</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1761104355797</updated>
+    </task>
+    <task id="LOCAL-00010" summary=".">
+      <option name="closed" value="true" />
+      <created>1761153547247</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1761153547248</updated>
+    </task>
+    <task id="LOCAL-00011" summary="ux/ui">
+      <option name="closed" value="true" />
+      <created>1761157749426</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1761157749426</updated>
+    </task>
+    <task id="LOCAL-00012" summary="fix circular imports">
+      <option name="closed" value="true" />
+      <created>1761158022130</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1761158022130</updated>
+    </task>
+    <task id="LOCAL-00013" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1761158288622</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1761158288622</updated>
+    </task>
+    <task id="LOCAL-00014" summary="oups">
+      <option name="closed" value="true" />
+      <created>1761158562609</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1761158562609</updated>
+    </task>
+    <task id="LOCAL-00015" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1761158957821</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1761158957821</updated>
+    </task>
+    <task id="LOCAL-00016" summary="uses in getter .get for dict">
+      <option name="closed" value="true" />
+      <created>1761159372061</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1761159372061</updated>
+    </task>
+    <task id="LOCAL-00017" summary="UX/UI zaebal">
+      <option name="closed" value="true" />
+      <created>1761159925393</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1761159925393</updated>
+    </task>
+    <task id="LOCAL-00018" summary="UX/UI zaebal oups">
+      <option name="closed" value="true" />
+      <created>1761159950268</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1761159950268</updated>
+    </task>
+    <task id="LOCAL-00019" summary="some bug fixes">
+      <option name="closed" value="true" />
+      <created>1761162608639</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1761162608639</updated>
+    </task>
+    <task id="LOCAL-00020" summary="some bug fixes">
+      <option name="closed" value="true" />
+      <created>1761166011399</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1761166011399</updated>
+    </task>
+    <task id="LOCAL-00021" summary="some bug fixes">
+      <option name="closed" value="true" />
+      <created>1761211220678</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1761211220678</updated>
+    </task>
+    <task id="LOCAL-00022" summary="some bug fixes">
+      <option name="closed" value="true" />
+      <created>1761211553364</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1761211553364</updated>
+    </task>
+    <task id="LOCAL-00023" summary="some bug fixes">
+      <option name="closed" value="true" />
+      <created>1761212792691</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1761212792691</updated>
+    </task>
+    <task id="LOCAL-00024" summary="some bug fixes">
+      <option name="closed" value="true" />
+      <created>1761213629589</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1761213629589</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Rerecruitment&#10;Group differentiation">
+      <option name="closed" value="true" />
+      <created>1761385139586</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1761385139586</updated>
+    </task>
+    <task id="LOCAL-00026" summary="micro fix">
+      <option name="closed" value="true" />
+      <created>1761386884673</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1761386884673</updated>
+    </task>
+    <task id="LOCAL-00027" summary="micro fix">
+      <option name="closed" value="true" />
+      <created>1761387394793</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1761387394793</updated>
+    </task>
+    <task id="LOCAL-00028" summary="micro fix">
+      <option name="closed" value="true" />
+      <created>1761387537239</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1761387537239</updated>
+    </task>
+    <task id="LOCAL-00029" summary="micro fix">
+      <option name="closed" value="true" />
+      <created>1761387767525</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1761387767525</updated>
+    </task>
+    <task id="LOCAL-00030" summary="return keyboards&#10;protect_content">
+      <option name="closed" value="true" />
+      <created>1761388098945</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1761388098945</updated>
+    </task>
+    <task id="LOCAL-00031" summary="UX/UI">
+      <option name="closed" value="true" />
+      <created>1761388436083</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1761388436083</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -233,45 +476,84 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="init" />
-    <option name="LAST_COMMIT_MESSAGE" value="init" />
+    <MESSAGE value="I'm tired of writing comments" />
+    <MESSAGE value="Video support&#10;User friandly UI/UX" />
+    <MESSAGE value="implemented trouble button&#10;optimized callbacks logic&#10;implemented telegram menu button" />
+    <MESSAGE value="oups&#10;fix back button on info&#10;fix callbacks logic" />
+    <MESSAGE value="Z" />
+    <MESSAGE value="oupsi" />
+    <MESSAGE value="." />
+    <MESSAGE value="ux/ui" />
+    <MESSAGE value="fix circular imports" />
+    <MESSAGE value="oups" />
+    <MESSAGE value="UI/UX" />
+    <MESSAGE value="uses in getter .get for dict" />
+    <MESSAGE value="UX/UI zaebal" />
+    <MESSAGE value="UX/UI zaebal oups" />
+    <MESSAGE value="some bug fixes" />
+    <MESSAGE value="Rerecruitment&#10;Group differentiation" />
+    <MESSAGE value="micro fix" />
+    <MESSAGE value="return keyboards&#10;protect_content" />
+    <MESSAGE value="UX/UI" />
+    <option name="LAST_COMMIT_MESSAGE" value="UX/UI" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/bot/wizard.py</url>
-          <line>290</line>
-          <option name="timeStamp" value="137" />
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>292</line>
+          <option name="timeStamp" value="202" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>166</line>
-          <option name="timeStamp" value="139" />
+          <line>294</line>
+          <option name="timeStamp" value="215" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>53</line>
-          <option name="timeStamp" value="140" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/bot/handlers/form_handler.py</url>
-          <line>46</line>
-          <option name="timeStamp" value="143" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/bot/handlers/form_handler.py</url>
-          <line>45</line>
-          <option name="timeStamp" value="144" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/bot/handlers/form_handler.py</url>
-          <line>43</line>
-          <option name="timeStamp" value="145" />
+          <line>203</line>
+          <option name="timeStamp" value="217" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>150</line>
-          <option name="timeStamp" value="146" />
+          <line>242</line>
+          <option name="timeStamp" value="218" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>137</line>
+          <option name="timeStamp" value="220" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>126</line>
+          <option name="timeStamp" value="221" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>107</line>
+          <option name="timeStamp" value="222" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>103</line>
+          <option name="timeStamp" value="223" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>139</line>
+          <option name="timeStamp" value="229" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>147</line>
+          <option name="timeStamp" value="230" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
+          <line>141</line>
+          <option name="timeStamp" value="231" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
