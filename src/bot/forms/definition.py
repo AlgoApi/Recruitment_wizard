@@ -51,7 +51,7 @@ operator_form = FormDefinition(
     title=operator_desc + "\n",
     video=None,
     fields=[
-        Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)]),
+        Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)], photo="AgACAgIAAxkBAAPVaQYxwVaJ6qp-EjNaCwvLIr6FNdkAAtsGMhsrzDBIxgABxFKncqyAAAgBAAMCAAN5AAceBA"),
         Field(key='last_name', label='Фамилия', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=3)]),
         Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=10)]),
         Field(key='eng_level', label='Знание английского языка', kind=FieldKind.TEXT),
