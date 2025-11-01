@@ -212,4 +212,8 @@ __marimo__/
 *.old
 logs
 .idea
+/.idea
+src/res
 __pycache__
+Dockerfile
+entrypoint.sh
