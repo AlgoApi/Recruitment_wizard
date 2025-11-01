@@ -73,7 +73,7 @@ agent_form = FormDefinition(
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)], photo="AgACAgIAAxkBAAO5aQYpLxiXmJvHo6FBOV4Y2g18X7EAAocGMhsrzDBIRb71LdRECBYACAEAAwIAA3kABx4E"),
         Field(key='phone', label='Номер телефона (пример: 79991234321)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),
-        Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=10)]),
+        Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=10)], photo="AgACAgIAAxkBAAO5aQYpLxiXmJvHo6FBOV4Y2g18X7EAAocGMhsrzDBIRb71LdRECBYACAEAAwIAA3kABx4E"),
         Field(key='tg', label='Telegram', kind=FieldKind.TEXT),
     ],
     page_size=2

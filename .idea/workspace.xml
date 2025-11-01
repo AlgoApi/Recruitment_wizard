@@ -8,11 +8,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c3dd7351-2bed-417b-8356-b3904a04f762" name="Changes" comment="UX/UI">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Recruitment_wizard.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Recruitment_wizard.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/bot/forms/definition.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/forms/definition.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bot/handlers/form_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/handlers/form_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/bot/wizard.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/wizard.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
