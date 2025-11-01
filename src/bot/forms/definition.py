@@ -66,7 +66,7 @@ agent_form = FormDefinition(
     id='agent',
     title=agent_desc + "\n\n",
     new_rec_needed=True,
-    video='BAACAgIAAxkBAAIHd2j2j3kw5lUdQe2_VhSvoLWk36FJAAIyjAACwl-xS6MeFIP43Em1HgQ',
+    video='BAACAgIAAxkBAAMtaQNnPQWdk4xRt2mnlkx7p7QnDIAAAlOLAAKXJxhIAU81f7Q9MLseBA',
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)]),
         Field(key='phone', label='Номер телефона (пример: 79991234321)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),

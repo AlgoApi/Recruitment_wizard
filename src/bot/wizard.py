@@ -23,16 +23,16 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 ALL_CMDS = ["start", "help", "fill", "whoami", "del_admin", "del_moderator", "add_admin", "add_moderator"]
 
-def getter_setter_admitted_users_wizard(path: str,
+def getter_setter_admitted_users_wizard(path: str, username:str,
                       encoding: str = "utf-8", write: bool = False, overwrite: bool = False, data: str = None, _try: bool = False) -> set|None:
-    result = set()
+    result = dict()
     if write:
         with open(path, "a", encoding=encoding, errors="replace") as f:
-            f.write(data)
+            f.write(f"{username}:{data}\n")
         return None
     elif overwrite:
         with open(path, "w", encoding=encoding, errors="replace") as f:
-            f.write(data)
+            f.write(f"{data}\n")
         return None
     else:
         try:
@@ -41,10 +41,10 @@ def getter_setter_admitted_users_wizard(path: str,
                     line = line.strip()
                     if line == "":
                         continue
-                    result.add(line)
+                    result.update({line.split(":")[0]:line.split(":")[1]})
         except FileNotFoundError:
             if not _try:
-                return getter_setter_admitted_users_wizard(path, encoding, write, overwrite, data, True)
+                return getter_setter_admitted_users_wizard(path, username, encoding, write, overwrite, data, True)
     return result
 
 async def run_wizard():
@@ -54,8 +54,8 @@ async def run_wizard():
 
     await init_db()
 
-    MODER_USERNAMES.update(getter_setter_admitted_users_wizard("moders.txt"))
-    ADMIN_USERNAMES.update(getter_setter_admitted_users_wizard("admins.txt"))
+    MODER_USERNAMES.update(getter_setter_admitted_users_wizard(path="moders.txt", username=None))
+    ADMIN_USERNAMES.update(getter_setter_admitted_users_wizard(path="admins.txt", username=None))
 
     session_store = await create_session_store()
     form_service = FormService()
@@ -71,16 +71,17 @@ async def run_wizard():
         commands = [
             BotCommand(command="start", description="Начать")
         ]
-
-        if message.from_user.username in ADMIN_USERNAMES:
+        print(ADMIN_USERNAMES)
+        print(MODER_USERNAMES)
+        if message.from_user.username in list(ADMIN_USERNAMES.values()):
             text += '/add_moderator <username>(без собачки) - Добавить права менеджера пользователю\n'
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
             text += '/del_admin <username>(без собачки) - Удалить права админа у пользователя\n'
             text += '\n'
-        if message.from_user.username == settings.superadmin_username.lower():
+        if message.from_user.username.lower() == settings.superadmin_username.lower():
             text += '/add_admin <username>(без собачки) - Добавить права админа пользователю\n'
             text += '\n'
-        if message.from_user.username in MODER_USERNAMES:
+        if message.from_user.username in list(MODER_USERNAMES.values()):
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
             text += '/view - Просмотр пришедших анкет\n'
             commands.append(BotCommand(command="view", description="Просмотр пришедших анкет"))
@@ -118,10 +119,10 @@ async def run_wizard():
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
-            getter_setter_admitted_users_wizard("moders.txt", write=True, data=text_after_command)
-            MODER_USERNAMES.add(text_after_command)
+            getter_setter_admitted_users_wizard("moders.txt", write=True, data=text_after_command,username=message.from_user.username)
+            MODER_USERNAMES.update({message.from_user.username:text_after_command})
             text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
-            for nick in list(MODER_USERNAMES):
+            for nick in list(MODER_USERNAMES.values()):
                 text += nick[:3] + "\n"
             await message.reply(text)
         else:
@@ -132,10 +133,10 @@ async def run_wizard():
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
-            getter_setter_admitted_users_wizard("admin.txt", write=True, data=text_after_command)
-            ADMIN_USERNAMES.add(text_after_command)
+            getter_setter_admitted_users_wizard("admins.txt", write=True, data=text_after_command, username=f"{message.from_user.username}{len(ADMIN_USERNAMES)}")
+            ADMIN_USERNAMES.update({message.from_user.username:text_after_command})
             text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
-            for nick in list(ADMIN_USERNAMES):
+            for nick in list(ADMIN_USERNAMES.values()):
                 text += nick[:3] + "\n"
             await message.reply(text)
         else:
@@ -146,16 +147,21 @@ async def run_wizard():
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
-            if text_after_command in MODER_USERNAMES:
-                if message.from_user.username == text_after_command or message.from_user.username == ADMIN_USERNAMES:
-                    MODER_USERNAMES.discard(text_after_command)
+            print(MODER_USERNAMES)
+            print(text_after_command)
+            if text_after_command in list(MODER_USERNAMES.values()):
+                if MODER_USERNAMES.get(message.from_user.username, "") == text_after_command:
+                    for id_name, nick in list(MODER_USERNAMES.items()):
+                        if message.from_user.username == id_name:
+                            del MODER_USERNAMES[f"{id_name}"]
                     text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
-                    for nick in list(MODER_USERNAMES):
-                        text += nick[:3] + "\n"
+                    for nick in list(MODER_USERNAMES.values()):
+                        text += nick[:3] + "...\n"
                     await message.reply(text)
-                    getter_setter_admitted_users_wizard("moders.txt", overwrite=True, data="\n".join(MODER_USERNAMES))
+                    print(MODER_USERNAMES)
+                    getter_setter_admitted_users_wizard("moders.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in MODER_USERNAMES.items()), username=message.from_user.username)
                 else:
-                    await message.reply("Ты можешь отправить в отставку только себя")
+                    await message.reply("Ты можешь отправить в отставку только своих")
             else:
                 await message.reply("Уже в отставке")
         else:
@@ -166,14 +172,19 @@ async def run_wizard():
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
-            if text_after_command in ADMIN_USERNAMES:
-                if message.from_user.username == text_after_command or message.from_user.username == settings.superadmin_username:
-                    ADMIN_USERNAMES.discard(text_after_command)
+            if text_after_command in list(ADMIN_USERNAMES.values()):
+                if ADMIN_USERNAMES.get(message.from_user.username, "") == text_after_command or message.from_user.username.lower() == settings.superadmin_username.lower():
+                    print(ADMIN_USERNAMES)
+                    for id_name, nick in list(ADMIN_USERNAMES.items()):
+                        if text_after_command == nick:
+                            del ADMIN_USERNAMES[f"{id_name}"]
+                    print("----")
+                    print(ADMIN_USERNAMES)
                     text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
-                    for nick in list(ADMIN_USERNAMES):
-                        text += nick[:3] + "\n"
+                    for nick in list(ADMIN_USERNAMES.values()):
+                        text += nick[:3] + "...\n"
                     await message.reply(text)
-                    getter_setter_admitted_users_wizard("admin.txt", overwrite=True, data="\n".join(ADMIN_USERNAMES))
+                    getter_setter_admitted_users_wizard("admins.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in ADMIN_USERNAMES.items()), username=message.from_user.username)
                 else:
                     await message.reply("Ты можешь отправить в отставку только себя")
             else:
