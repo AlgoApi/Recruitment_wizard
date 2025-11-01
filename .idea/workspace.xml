@@ -169,9 +169,9 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.main" />
       <item itemvalue="Python.check_redis_stack" />
       <item itemvalue="Python.config" />
+      <item itemvalue="Python.main" />
       <item itemvalue="Python.wizard" />
     </list>
     <recent_temporary>
