@@ -1,4 +1,6 @@
 from pyrogram import filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 from ..config import settings
 from pyrogram.errors import UserNotParticipant, FloodWait, Forbidden
 
@@ -36,15 +38,24 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
             # если username отсутствует в объекте member.user или в message.from_user -> False
             member_username = (member.user.username or "").lower()
             msg_username = (user.username or "").lower()
-            return bool(member_username) and member_username == msg_username
+            if not bool(member_username) and member_username == msg_username:
+                await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить",
+                                          reply_markup=InlineKeyboardMarkup(
+                                              [[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
+                return False
+            else:
+                return True
 
         except UserNotParticipant:
+            await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
             return False
         except Forbidden as e:
             print(f"[in_channel_member_filter] bot has been not accessible for channel: {e}")
+            await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
             return False
         except FloodWait as e:
             print(f"[in_channel_member_filter] FloodWait {e.value} sec")
+            await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
             return False
         except Exception as e:
             print(f"[in_channel_member_filter] unexpected error: {e}")
