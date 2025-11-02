@@ -2,6 +2,7 @@ import asyncio
 import logging
 import uvloop
 from pyrogram import Client, filters
+from pyrogram.errors import UserNotParticipant
 from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, MenuButtonCommands, \
     BotCommandScopeChat, BotCommand
 
@@ -18,10 +19,30 @@ from .forms.definition import operator_form, agent_form
 from .security.security_rules import allowed_admin_rule, ADMIN_USERNAMES
 from .security.security_rules import allowed_moder_rule, MODER_USERNAMES
 from .security.security_rules import allowed_superadmin_rule
+from .security.security_rules import member_rule
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 ALL_CMDS = ["start", "help", "fill", "whoami", "del_admin", "del_moderator", "add_admin", "add_moderator"]
+
+async def is_user_in_chat(app: Client, chat_id: int, user_id: int, username: str) -> bool:
+    """
+    Проверяет, состоит ли пользователь с данным user_id и username в канале/группе.
+    Возвращает True, если пользователь найден и username совпадает.
+    """
+    try:
+        member = await app.get_chat_member(chat_id, user_id)
+        # Проверим username (в API он без @)
+        if member.user.username and member.user.username.lower() == username.lower():
+            return True
+        else:
+            return False
+    except UserNotParticipant:
+        # Пользователь не состоит в канале
+        return False
+    except Exception as e:
+        print(f"Ошибка при проверке: {e}")
+        return False
 
 def getter_setter_admitted_users_wizard(path: str, username:str,
                       encoding: str = "utf-8", write: bool = False, overwrite: bool = False, data: str = None, _try: bool = False) -> set|None:
@@ -65,7 +86,7 @@ async def run_wizard():
     operator_form_conv = FormConversation(session_store, form_service, operator_form)
     agent_form_conv = FormConversation(session_store, form_service, agent_form)
 
-    @app.on_message(filters.command(['start', 'help']) & filters.private)
+    @app.on_message(filters.command(['start', 'help']) & filters.private & member_rule)
     async def cmd_start(client: Client, message: Message):
         text = ""
         commands = [
@@ -114,7 +135,7 @@ async def run_wizard():
         await operator_form_conv.start(client, message)
     '''
 
-    @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule)
+    @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule & member_rule)
     async def cmd_add_moder(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -128,7 +149,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule)
+    @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule & member_rule)
     async def cmd_add_admin(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -142,7 +163,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule))
+    @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule) & member_rule)
     async def cmd_del_moder(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -167,7 +188,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule)
+    @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule & member_rule)
     async def cmd_del_admin(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -193,7 +214,7 @@ async def run_wizard():
             await message.reply("В следующий раз напиши username после команды")
 
 
-    @app.on_message(filters.command("stat7") & filters.private & allowed_moder_rule)
+    @app.on_message(filters.command("stat7") & filters.private & allowed_moder_rule & member_rule)
     async def cmd_view_stat(client: Client, message: Message):
         data = await form_service.get_stat()
         text = ("Общая статистика заявок:\n"
@@ -281,7 +302,7 @@ async def run_wizard():
         await message.reply(text)
 
 
-    @app.on_message(filters.command("view") & filters.private & allowed_moder_rule)
+    @app.on_message(filters.command("view") & filters.private & allowed_moder_rule & member_rule)
     async def cmd_view_forms(client: Client, message: Message):
         form = await form_service.get_form(None, "operator", assigned_to=message.from_user.username)
 
@@ -316,13 +337,13 @@ async def run_wizard():
         except Exception as e:
             await message.reply_text(f"Ошибка при отправке заявки #{form.id}: {e}")
 
-    @app.on_message(filters.private & ~filters.command(ALL_CMDS))
+    @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule)
     async def catch_all(client: Client, message: Message):
         # Any non-command message is considered as input to the current FSM
         await operator_form_conv.handle_message(client, message)
         await agent_form_conv.handle_message(client, message)
 
-    @app.on_callback_query()
+    @app.on_callback_query(member_rule)
     async def on_callback(client: Client, callback: CallbackQuery):
         await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
         await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)

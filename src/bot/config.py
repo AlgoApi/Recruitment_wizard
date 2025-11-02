@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     message_group_id: int
     partner_group_id: int
     agent_group_id: int
+    channel_id: int
 
 field_names = list(Settings.model_fields.keys())
 
