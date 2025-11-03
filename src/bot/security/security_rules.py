@@ -7,6 +7,12 @@ from pyrogram.errors import UserNotParticipant, FloodWait, Forbidden
 MODER_USERNAMES = dict()
 ADMIN_USERNAMES = dict()
 
+async def send_subscribe_btn(client, user_id):
+    await client.send_message(user_id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить",
+                              reply_markup=InlineKeyboardMarkup(
+                                  [[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")],
+                                   [InlineKeyboardButton("Я подписался!", callback_data="cmd_start_exec")]]))
+
 def moder_rule_fabric():
     return filters.create(lambda _, __, message: (
         bool(message.from_user and (message.from_user.username or "").lower() in {u.lower() for u in list(MODER_USERNAMES.values())})
@@ -39,23 +45,21 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
             member_username = (member.user.username or "").lower()
             msg_username = (user.username or "").lower()
             if not bool(member_username) and member_username == msg_username:
-                await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить",
-                                          reply_markup=InlineKeyboardMarkup(
-                                              [[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
+                await send_subscribe_btn(client, user.id)
                 return False
             else:
                 return True
 
         except UserNotParticipant:
-            await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
+            await send_subscribe_btn(client, user.id)
             return False
         except Forbidden as e:
             print(f"[in_channel_member_filter] bot has been not accessible for channel: {e}")
-            await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
+            await send_subscribe_btn(client, user.id)
             return False
         except FloodWait as e:
             print(f"[in_channel_member_filter] FloodWait {e.value} sec")
-            await client.send_message(user.id, "Пожалуйста, подпишитесь на наш канал чтобы продолжить", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Подписаться", url="https://t.me/AuraScouting")]]))
+            await send_subscribe_btn(client, user.id)
             return False
         except Exception as e:
             print(f"[in_channel_member_filter] unexpected error: {e}")
