@@ -183,34 +183,36 @@ class FormService:
               SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'agent'    AND status IS TRUE  THEN 1 ELSE 0 END) AS agent_true,
               SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS NULL  THEN 1 ELSE 0 END) AS operator_none,
               SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS FALSE THEN 1 ELSE 0 END) AS operator_false,
-              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS TRUE  THEN 1 ELSE 0 END) AS operator_true,
+              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS TRUE  THEN 1 ELSE 0 END) AS operator_true
+              
             FROM "Recruitment_forms"
             WHERE (:assigned_to IS NULL OR assigned_to = :assigned_to);
             """
 
-        params = {"assigned_to": assigned_to, "tz": tz}
-
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(text(_get_query()), params)
-            row = result.fetchone()
+        async def _exec_and_format():
+            def _val(name: str, row) -> int:
+                v = row[name] if row is not None else None
+                return int(v) if v is not None else 0
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(text(_get_query()), {"assigned_to": assigned_to, "tz": tz})
+                row = result.fetchone()
+            out = {
+                "agent": {
+                    "none": _val(f"agent_none", row),
+                    "false": _val(f"agent_false", row),
+                    "true": _val(f"agent_true", row),
+                },
+                "operator": {
+                    "none": _val(f"operator_none", row),
+                    "false": _val(f"operator_false", row),
+                    "true": _val(f"operator_true", row),
+                },
+            }
+            return out
 
         # helper to read column safely and cast to int
-        def _val(name: str) -> int:
-            v = row[name] if row is not None else None
-            return int(v) if v is not None else 0
 
-        out = {
-            "agent": {
-                "none": _val(f"agent_none"),
-                "false": _val(f"agent_false"),
-                "true": _val(f"agent_true"),
-            },
-            "operator": {
-                "none": _val(f"operator_none"),
-                "false": _val(f"operator_false"),
-                "true": _val(f"operator_true"),
-            },
-        }
+        res = await asyncio.gather(_exec_and_format())
 
-        return out
+        return res
 
