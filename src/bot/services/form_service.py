@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
 import json
 import logging
-from typing import Optional, Dict, Any, Coroutine
+from typing import Optional, Dict, Any, Coroutine, List
+import asyncio
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, text, desc
-from sqlalchemy.exc import SQLAlchemyError
 
 from ..models.db import AsyncSessionLocal
 from ..models.form import FormModel
@@ -161,65 +162,55 @@ class FormService:
             form = result.scalars().first()
             return True if form else False
 
-    async def get_stat(self):
-        try:
-            async with AsyncSessionLocal() as session:
-                try:
-                    res = await session.execute(text("SELECT * FROM mv_forms_stats LIMIT 1;"))
-                except SQLAlchemyError as exc:
-                    logger.exception(f"Ошибка при чтении mv_forms_stats ({exc})")
-                    raise
-
-                row = res.first()
-                if not row:
-                    logger.debug("mv_forms_stats вернул пустой результат")
-                    return {}
-
-                # RowMapping доступен как row._mapping
-                mapping = dict(row._mapping)
-                # убрать служебный id, если он есть
-                mapping.pop("id", None)
-
-                # привести все значения к int (None -> 0)
-                return {k: int(v) if v is not None else 0 for k, v in mapping.items()}
-        except Exception:
-            logger.exception("get_forms_stats_from_mv failed")
-            raise
-
-    async def get_user_stats(self, username: str) -> Dict[str, Dict[str, Dict[str, int]]]:
+    # Асинхронная функция получения статистики
+    async def get_forms_stats(
+            self,
+            assigned_to: Optional[str] = None,
+            period: Optional[str] = None,
+            tz: str = "UTC",
+    ) -> dict[str, dict[str, int]]:
         """
-        Возвращает dict:
-        {
-          "week": {"operator": {"pending": n, "accepted": m, "rejected": k}, "agent": {...}},
-          "month": {...},
-          "year": {...}
-        }
-        """
-        # Инициализируем структуру с нулями
-        periods = ["week", "month", "year"]
-        roles = ["operator", "agent"]
-        status_keys = {"null": "pending", "true": "accepted", "false": "rejected"}
+        Возвращает числа за последние 7, 30 и 365 дней, разбитые по role (agent/operator)
+        и по status (None/False/True).
 
-        result = {p: {r: {s: 0 for s in status_keys.values()} for r in roles} for p in periods}
+        assigned_to: если None — все, иначе — фильтруем assigned_to = :assigned_to
+        """
+        def _get_query():
+            return f"""
+            SELECT
+              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'agent'    AND status IS NULL  THEN 1 ELSE 0 END) AS agent_none,
+              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'agent'    AND status IS FALSE THEN 1 ELSE 0 END) AS agent_false,
+              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'agent'    AND status IS TRUE  THEN 1 ELSE 0 END) AS agent_true,
+              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS NULL  THEN 1 ELSE 0 END) AS operator_none,
+              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS FALSE THEN 1 ELSE 0 END) AS operator_false,
+              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS TRUE  THEN 1 ELSE 0 END) AS operator_true,
+            FROM "Recruitment_forms"
+            WHERE (:assigned_to IS NULL OR assigned_to = :assigned_to);
+            """
+
+        params = {"assigned_to": assigned_to, "tz": tz}
 
         async with AsyncSessionLocal() as session:
-            try:
-                res = await session.execute(MV_USER_SQL, {"username": username})
-                rows = res.fetchall()
-            except Exception as e:
-                logger.debug("MV read failed, will try fallback: %s", e)
-                rows = []
+            result = await session.execute(text(_get_query()), params)
+            row = result.fetchone()
 
-            if rows:
-                # rows: assigned_to, role, status, week_count, month_count, year_count
-                for assigned_to, role, status, week_c, month_c, year_c in rows:
-                    st_key = ("pending" if status is None else ("accepted" if status is True else "rejected"))
-                    # safety: if role unexpected, skip
-                    if role not in roles:
-                        continue
-                    result["week"][role][st_key] = int(week_c or 0)
-                    result["month"][role][st_key] = int(month_c or 0)
-                    result["year"][role][st_key] = int(year_c or 0)
-                return result
+        # helper to read column safely and cast to int
+        def _val(name: str) -> int:
+            v = row[name] if row is not None else None
+            return int(v) if v is not None else 0
 
-            return result
+        out = {
+            "agent": {
+                "none": _val(f"agent_none"),
+                "false": _val(f"agent_false"),
+                "true": _val(f"agent_true"),
+            },
+            "operator": {
+                "none": _val(f"operator_none"),
+                "false": _val(f"operator_false"),
+                "true": _val(f"operator_true"),
+            },
+        }
+
+        return out
+

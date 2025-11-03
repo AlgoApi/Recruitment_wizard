@@ -8,7 +8,7 @@ from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineK
 
 from .models.db import init_db
 from .utils.busines_text import hello_message
-from .utils.utils import format_content
+from .utils.utils import format_content, stat_text_gen
 from .config import settings
 from .logging_config import setup_logging
 from .storage.session_store import create_session_store
@@ -98,16 +98,17 @@ async def run_wizard():
             text += '/add_moderator <username>(без собачки) - Добавить права менеджера пользователю\n'
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
             text += '/del_admin <username>(без собачки) - Удалить права админа у пользователя\n'
+            text += '/view - Просмотр пришедших анкет\n'
+            commands.append(BotCommand(command="view", description="Просмотр пришедших анкет"))
+            text += '/stat[7/30/365] - Просмотр общей статистики за столько-то дней\n'
+            text += '/xll[7/30/365] - Просмотр личной статистики за столько-то дней\n'
             text += '\n'
         if message.from_user.username.lower() == settings.superadmin_username.lower():
             text += '/add_admin <username>(без собачки) - Добавить права админа пользователю\n'
             text += '\n'
         if message.from_user.username in list(MODER_USERNAMES.values()):
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
-            text += '/view - Просмотр пришедших анкет\n'
-            commands.append(BotCommand(command="view", description="Просмотр пришедших анкет"))
-            text += '/stat[7/30/365] - Просмотр общей статистики за столько-то дней\n'
-            text += '/xll[7/30/365] - Просмотр личной статистики за столько-то дней\n'
+
             text += '\n'
 
         await app.set_chat_menu_button(
@@ -214,91 +215,46 @@ async def run_wizard():
             await message.reply("В следующий раз напиши username после команды")
 
 
-    @app.on_message(filters.command("stat7") & filters.private & allowed_moder_rule & member_rule)
+    @app.on_message(filters.command("stat7") & filters.private & allowed_admin_rule & member_rule)
     async def cmd_view_stat(client: Client, message: Message):
-        data = await form_service.get_stat()
-        text = ("Общая статистика заявок:\n"
-                "за послдение 7 дней:\n"
-                f"\tОжидающие анкеты оператора: {data.get("operator_pending_week")}\n"
-                f"\tПринятые анкеты оператора: {data.get("operator_accepted_week")}\n"
-                f"\tОтклонённые анкеты оператора: {data.get("operator_rejected_week")}\n"
-                "\n"
-                f"\tОжидающие анкеты агента: {data.get("agent_pending_week")}\n"
-                f"\tПринятые анкеты агента: {data.get("agent_accepted_week")}\n"
-                f"\tОтклонённые анкеты агента: {data.get("agent_rejected_week")}\n"
-                )
+        data = await form_service.get_forms_stats(period="7 days")
+        text = "Общая статистика заявок за послдение 7 дней:\n"
+        text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("stat30") & filters.private & allowed_moder_rule)
+    @app.on_message(filters.command("stat30") & filters.private & allowed_admin_rule)
     async def cmd_view_stat(client: Client, message: Message):
-        data = await form_service.get_stat()
-        text = ("Общая статистика заявок:\n"
-                "за послдение 30 дней:\n"
-                f"\tОжидающие анкеты оператора: {data.get("operator_pending_month")}\n"
-                f"\tПринятые анкеты оператора: {data.get("operator_accepted_month")}\n"
-                f"\tОтклонённые анкеты оператора: {data.get("operator_rejected_month")}\n"
-                "\n"
-                f"\tОжидающие анкеты агента: {data.get("agent_pending_month")}\n"
-                f"\tПринятые анкеты агента: {data.get("agent_accepted_month")}\n"
-                f"\tОтклонённые анкеты агента: {data.get("agent_rejected_month")}\n"
-                )
+        data = await form_service.get_forms_stats(period="29 days")
+        text = "Общая статистика заявок за послдение 30 дней:\n"
+        text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("stat365") & filters.private & allowed_moder_rule)
+    @app.on_message(filters.command("stat365") & filters.private & allowed_admin_rule)
     async def cmd_view_stat(client: Client, message: Message):
-        data = await form_service.get_stat()
-        text = ("Общая статистика заявок обновляется раз в час:\n"
-                "за послдение 365 дней:\n"
-                f"\tОжидающие анкеты оператора: {data.get("operator_pending_year")}\n"
-                f"\tПринятые анкеты оператора: {data.get("operator_accepted_year")}\n"
-                f"\tОтклонённые анкеты оператора: {data.get("operator_rejected_year")}\n"
-                "\n"
-                f"\tОжидающие анкеты агента: {data.get("agent_pending_year")}\n"
-                f"\tПринятые анкеты агента: {data.get("agent_accepted_year")}\n"
-                f"\tОтклонённые анкеты агента: {data.get("agent_rejected_year")}\n"
-                )
+        data = await form_service.get_forms_stats(period="364 days")
+        text = "Общая статистика заявок за послдение 365 дней:\n"
+        text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("xxl7") & filters.private & allowed_moder_rule)
+    @app.on_message(filters.command("xxl7") & filters.private & allowed_admin_rule)
     async def cmd_view_stat(client: Client, message: Message):
-        data = await form_service.get_user_stats(message.from_user.username.lower())
-        text = ("Личная статистика заявок обновляется раз в час:\n"
-                f"\tОжидающие анкеты оператора: {data.get("week", {}).get("operator", {}).get("pending")}\n"
-                f"\tПринятые анкеты оператора: {data.get("week", {}).get("operator", {}).get("accepted")}\n"
-                f"\tОтклонённые анкеты оператора: {data.get("week", {}).get("operator", {}).get("rejected")}\n"
-                "\n"
-                f"\tОжидающие анкеты агента: {data.get("week", {}).get("agent", {}).get("pending")}\n"
-                f"\tПринятые анкеты агента: {data.get("week", {}).get("agent", {}).get("accepted")}\n"
-                f"\tОтклонённые анкеты агента: {data.get("week", {}).get("agent", {}).get("rejected")}\n"
-                )
+        data = await form_service.get_forms_stats(period="6 days", assigned_to=message.from_user.username.lower())
+        text = "Личная статистика заявок за последние 7 дней:\n"
+        text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("xxl30") & filters.private & allowed_moder_rule)
+    @app.on_message(filters.command("xxl30") & filters.private & allowed_admin_rule)
     async def cmd_view_stat(client: Client, message: Message):
-        data = await form_service.get_user_stats(message.from_user.username.lower())
-        text = ("Личная статистика заявок обновляется раз в час:\n"
-                f"\tОжидающие анкеты оператора: {data.get("month", {}).get("operator", {}).get("pending")}\n"
-                f"\tПринятые анкеты оператора: {data.get("month", {}).get("operator", {}).get("accepted")}\n"
-                f"\tОтклонённые анкеты оператора: {data.get("month", {}).get("operator", {}).get("rejected")}\n"
-                "\n"
-                f"\tОжидающие анкеты агента: {data.get("month", {}).get("agent", {}).get("pending")}\n"
-                f"\tПринятые анкеты агента: {data.get("month", {}).get("agent", {}).get("accepted")}\n"
-                f"\tОтклонённые анкеты агента: {data.get("month", {}).get("agent", {}).get("rejected")}\n"
-                )
+        data = await form_service.get_forms_stats(period="29 days", assigned_to=message.from_user.username.lower())
+        text = "Личная статистика заявок за последние 30 дней:\n"
+        text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("xxl365") & filters.private & allowed_moder_rule)
+    @app.on_message(filters.command("xxl365") & filters.private & allowed_admin_rule)
     async def cmd_view_stat(client: Client, message: Message):
-        data = await form_service.get_user_stats(message.from_user.username.lower())
-        text = ("Личная статистика заявок обновляется раз в час:\n"
-                f"\tОжидающие анкеты оператора: {data.get("year", {}).get("operator", {}).get("pending")}\n"
-                f"\tПринятые анкеты оператора: {data.get("year", {}).get("operator", {}).get("accepted")}\n"
-                f"\tОтклонённые анкеты оператора: {data.get("year", {}).get("operator", {}).get("rejected")}\n"
-                "\n"
-                f"\tОжидающие анкеты агента: {data.get("year", {}).get("agent", {}).get("pending")}\n"
-                f"\tПринятые анкеты агента: {data.get("year", {}).get("agent", {}).get("accepted")}\n"
-                f"\tОтклонённые анкеты агента: {data.get("year", {}).get("agent", {}).get("rejected")}\n"
-                )
+        data = await form_service.get_forms_stats(period="364 days", assigned_to=message.from_user.username.lower())
+        text = "Личная статистика заявок за последние 365 дней:\n"
+        text += stat_text_gen(data)
         await message.reply(text)
 
 

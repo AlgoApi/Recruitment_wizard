@@ -41,3 +41,12 @@ def translate_role(txt:str) -> str:
         case "operator":
             return "оператора"
     return ""
+
+def stat_text_gen(data:dict[str, dict[str, int]]) -> str:
+    return (f"\tОжидающие анкеты оператора: {data.get("operator", {}).get("none")}\n"
+    f"\tПринятые анкеты оператора: {data.get("operator", {}).get("true")}\n"
+    f"\tОтклонённые анкеты оператора: {data.get("operator", {}).get("false")}\n"
+    "\n"
+    f"\tОжидающие анкеты агента: {data.get("agent", {}).get("none")}\n"
+    f"\tПринятые анкеты агента: {data.get("agent", {}).get("true")}\n"
+    f"\tОтклонённые анкеты агента: {data.get("agent", {}).get("false")}\n")
