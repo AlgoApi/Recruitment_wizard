@@ -178,15 +178,14 @@ class FormService:
         def _get_query():
             return f"""
             SELECT
-              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'agent'    AND status IS NULL  THEN 1 ELSE 0 END) AS agent_none,
-              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'agent'    AND status IS FALSE THEN 1 ELSE 0 END) AS agent_false,
-              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'agent'    AND status IS TRUE  THEN 1 ELSE 0 END) AS agent_true,
-              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS NULL  THEN 1 ELSE 0 END) AS operator_none,
-              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS FALSE THEN 1 ELSE 0 END) AS operator_false,
-              SUM(CASE WHEN (created_at AT TIME ZONE :tz) >= (date_trunc('day', now() AT TIME ZONE :tz) - interval '{period}') AND role = 'operator' AND status IS TRUE  THEN 1 ELSE 0 END) AS operator_true
+              SUM(CASE WHEN (created_at AT TIME ZONE 'UTC') >= (date_trunc('day', now() AT TIME ZONE 'UTC') - interval '{period}') AND role = 'agent'    AND status IS NULL  THEN 1 ELSE 0 END) AS agent_none,
+              SUM(CASE WHEN (created_at AT TIME ZONE 'UTC') >= (date_trunc('day', now() AT TIME ZONE 'UTC') - interval '{period}') AND role = 'agent'    AND status IS FALSE THEN 1 ELSE 0 END) AS agent_false,
+              SUM(CASE WHEN (created_at AT TIME ZONE 'UTC') >= (date_trunc('day', now() AT TIME ZONE 'UTC') - interval '{period}') AND role = 'agent'    AND status IS TRUE  THEN 1 ELSE 0 END) AS agent_true,
+              SUM(CASE WHEN (created_at AT TIME ZONE 'UTC') >= (date_trunc('day', now() AT TIME ZONE 'UTC') - interval '{period}') AND role = 'operator' AND status IS NULL  THEN 1 ELSE 0 END) AS operator_none,
+              SUM(CASE WHEN (created_at AT TIME ZONE 'UTC') >= (date_trunc('day', now() AT TIME ZONE 'UTC') - interval '{period}') AND role = 'operator' AND status IS FALSE THEN 1 ELSE 0 END) AS operator_false,
+              SUM(CASE WHEN (created_at AT TIME ZONE 'UTC') >= (date_trunc('day', now() AT TIME ZONE 'UTC') - interval '{period}') AND role = 'operator' AND status IS TRUE  THEN 1 ELSE 0 END) AS operator_true
               
-            FROM "Recruitment_forms"
-            WHERE (:assigned_to IS NULL OR assigned_to = :assigned_to);
+            FROM "Recruitment_forms"{f" WHERE (assigned_to = '{assigned_to}')" if assigned_to is not None else ''};
             """
 
         async def _exec_and_format():

@@ -140,7 +140,7 @@ async def run_wizard():
     async def cmd_add_moder(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
-            text_after_command = " ".join(args[1:])
+            text_after_command = " ".join(args[1:]).lower()
             getter_setter_admitted_users_wizard("moders.txt", write=True, data=text_after_command,username=message.from_user.username)
             MODER_USERNAMES.update({message.from_user.username:text_after_command})
             text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"

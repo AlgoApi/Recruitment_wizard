@@ -43,6 +43,8 @@ def translate_role(txt:str) -> str:
     return ""
 
 def stat_text_gen(data:dict[str, dict[str, int]]) -> str:
+    if type(data) is list:
+        data = data[0]
     return (f"\tОжидающие анкеты оператора: {data.get("operator", {}).get("none")}\n"
     f"\tПринятые анкеты оператора: {data.get("operator", {}).get("true")}\n"
     f"\tОтклонённые анкеты оператора: {data.get("operator", {}).get("false")}\n"
