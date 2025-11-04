@@ -10,6 +10,7 @@ from pyrogram.raw.functions.messages import SendMessage as SendMessage_Raw
 from pyrogram.raw import functions, types as raw_types
 
 from .form_handler import FormConversation
+from ..security.security_rules import MODER_USERNAMES
 from ..storage.session_store import RedisSessionStore
 from ..services.form_service import FormService
 from ..utils.utils import format_content, translate_role
@@ -311,7 +312,11 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 except Exception as e:
                     logger.error("Ошибка при отправке:", e)
             elif session.get('definition_id', "UNDEFINED") == 'operator':
-                await client.send_message(chat_id=form.assigned_to, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to))
+                target=""
+                for key, val in MODER_USERNAMES:
+                    if val == form.assigned_to:
+                        target = key
+                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to))
             await safe_answer(callback)
             return
         else:
