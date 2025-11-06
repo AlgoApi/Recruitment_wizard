@@ -12,7 +12,7 @@ from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineK
 from .models.db import init_db
 from .utils.busines_text import hello_message
 from .utils.utils import format_content, stat_text_gen
-from .config import settings
+from .config import settings, MAX_TRY_RECONNECT
 from .logging_config import setup_logging
 from .storage.session_store import create_session_store
 from .handlers.form_handler import FormConversation
@@ -78,6 +78,8 @@ async def run_wizard():
     logger = logging.getLogger(__name__)
     logging.getLogger("redis").setLevel(logging.DEBUG)
 
+    app = None
+
     await init_db()
 
     MODER_USERNAMES.update(getter_setter_admitted_users_wizard(path="moders.txt", username=None))
@@ -87,18 +89,20 @@ async def run_wizard():
     form_service = FormService()
 
     zigma = ""
-    try:
-        app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
-                     api_hash=settings.api_hash)
-    except sqlite3.OperationalError:
-        while any(Path(".").glob(f"Recruitment-SO{zigma}D*")):
-            zigma += 'O'
-            try:
-                app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
-                             api_hash=settings.api_hash)
-            except sqlite3.OperationalError:
-                continue
+    attempts = 0
+
+    while Path(f"Recruitment-SO{zigma}D.session").exists():
+        if not Path(f"Recruitment-SO{zigma}D.session-journal").exists():
+            logger.info(f"attempt use session:{zigma}")
+            app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
+                        api_hash=settings.api_hash)
             break
+        else:
+            zigma += 'O'
+
+    if not app:
+        app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
+                             api_hash=settings.api_hash)
 
     operator_form_conv = FormConversation(session_store, form_service, operator_form)
     agent_form_conv = FormConversation(session_store, form_service, agent_form)

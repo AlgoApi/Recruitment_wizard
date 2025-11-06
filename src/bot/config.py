@@ -2,6 +2,8 @@ import os
 import logging
 from pydantic_settings import BaseSettings
 
+MAX_TRY_RECONNECT=3
+
 logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
