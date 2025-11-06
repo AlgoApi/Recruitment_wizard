@@ -319,7 +319,7 @@ async def run_wizard():
         await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
 
     @app.on_message(filters.command('gay') & mpg_fabric(logger, session_store) & allowed_admin_rule)
-    async def opers(client: Client, message):
+    async def pashalko(client: Client, message):
         await client.send_photo(message.from_user.id, caption=f"{MODER_USERNAMES.get(message.from_user.username)}", photo="AgACAgIAAxkBAAIDM2kM9OrTy8y7zLWKDMEiVt2B5rbQAAJxD2sbOlNoSFGjptx13Ps1AAgBAAMCAAN5AAceBA")
 
     @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule & mpg_fabric(logger, session_store))

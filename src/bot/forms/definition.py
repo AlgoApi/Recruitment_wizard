@@ -71,7 +71,7 @@ agent_form = FormDefinition(
     new_rec_needed=True,
     video='BAACAgIAAxkBAAMtaQNnPQWdk4xRt2mnlkx7p7QnDIAAAlOLAAKXJxhIAU81f7Q9MLseBA',
     fields=[
-        Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)], photo="AgACAgIAAxkBAAO5aQYpLxiXmJvHo6FBOV4Y2g18X7EAAocGMhsrzDBIRb71LdRECBYACAEAAwIAA3kABx4E"),
+        Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)], photo="AgACAgIAAxkBAAIDQmkM9ggchV8RUVktLkVBY1QK-LISAAJ1D2sbOlNoSEcDQSubLXh5AAgBAAMCAAN5AAceBA"),
         Field(key='phone', label='Номер телефона (пример: 79991234321)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),
         Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=10)], photo="AgACAgIAAxkBAAO5aQYpLxiXmJvHo6FBOV4Y2g18X7EAAocGMhsrzDBIRb71LdRECBYACAEAAwIAA3kABx4E"),
         Field(key='tg', label='Telegram', kind=FieldKind.TEXT),
