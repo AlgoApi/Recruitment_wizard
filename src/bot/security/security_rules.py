@@ -74,9 +74,7 @@ def multiple_poller_guardian_fabric(log, session_store):
                 return False
         except AttributeError:
             chat_id = message.message.chat.id
-            msg_id = message.message.id
-            if message.from_user.is_bot:
-                return False
+            msg_id = message.message.id # обычные сообщения от бота скипаем, калбеки тут не трогаем
         key = f"processed:msg:{chat_id}:{msg_id}"
         ttl_seconds = 60 * 30
 
