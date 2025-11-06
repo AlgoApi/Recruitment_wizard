@@ -314,7 +314,7 @@ async def run_wizard():
         except Exception as e:
             await message.reply_text(f"Ошибка при отправке заявки #{form.id}: {e}")
 
-    @app.on_message(filters.command(["gay", "mymoder"]) & mpg_fabric(logger, session_store) & allowed_admin_rule & filters.private)
+    @app.on_message(filters.command(['gay', 'mymoder']) & mpg_fabric(logger, session_store) & allowed_admin_rule & filters.private)
     async def opers(client: Client, message):
         await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
 
