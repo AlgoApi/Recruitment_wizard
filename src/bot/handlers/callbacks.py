@@ -313,7 +313,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                     logger.error("Ошибка при отправке:", e)
             elif session.get('definition_id', "UNDEFINED") == 'operator':
                 target=""
-                for key, val in MODER_USERNAMES:
+                for key, val in MODER_USERNAMES.items():
                     if val == form.assigned_to:
                         target = key
                 await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to))
@@ -490,7 +490,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:
-                await safe_send_to_user(client, user_id, agent_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
+                await safe_send_to_user(client, user_id, agent_accept, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
             '''
             DEPRECATED
             else:  # Успешно: отправляем полную анкету назначенному менеджеру
