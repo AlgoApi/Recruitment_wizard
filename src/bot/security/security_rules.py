@@ -73,8 +73,16 @@ def multiple_poller_guardian_fabric(log, session_store):
             if message.from_user.is_bot:
                 return False
         except AttributeError:
-            chat_id = message.message.chat.id
-            msg_id = message.message.id # обычные сообщения от бота скипаем, калбеки тут не трогаем
+            try:
+                chat_id = message.message.chat.id
+                msg_id = message.message.id # обычные сообщения от бота скипаем, калбеки тут не трогаем
+            except AttributeError:
+                try:
+                    chat_id = message.from_user.id
+                    msg_id = message.message.id
+                except AttributeError:
+                    log.warning("couldn't recognize the user - Allowance")
+                    return True
         key = f"processed:msg:{chat_id}:{msg_id}"
         ttl_seconds = 60 * 30
 
