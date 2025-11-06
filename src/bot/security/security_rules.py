@@ -35,6 +35,8 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
             return False  # нет данных о пользователе (например, service message)
 
         try:
+            print(channel_id)
+            print(type(channel_id))
             member = await client.get_chat_member(channel_id, user.id)
             # Если нужно только наличие — достаточно успешного возврата member
             if not require_username_match:
@@ -67,7 +69,7 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
 
     return filters.create(predicate)
 
-async def multiple_poller_guardian_fabric(log, session_store):
+def multiple_poller_guardian_fabric(log, session_store):
     @filters.create
     async def poller_guardian(_, client, message) -> bool:
         chat_id = message.chat.id
