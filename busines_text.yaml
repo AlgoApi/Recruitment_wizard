@@ -201,6 +201,9 @@ base_info: |
   
   Готовы начать? Возвращайтесь в главное меню и выбирайте вакансию! 🚀
 
+request_info:
+  kakashke
+
 operator_deny_reasons:
   - интернет
   - опыт
