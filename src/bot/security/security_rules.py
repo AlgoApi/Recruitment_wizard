@@ -78,7 +78,7 @@ def multiple_poller_guardian_fabric(log, session_store):
 
         got = await session_store.set_other(key, "1", nx=True, ex=ttl_seconds)
         if not got:
-            log.debug("Skipping already-processed message %s:%s", chat_id, msg_id)
+            log.info("Skipping already-processed message %s:%s", chat_id, msg_id)
             return False
         log.info("Accepted message for processing %s:%s", chat_id, msg_id)
         return True
