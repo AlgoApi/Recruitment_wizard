@@ -67,8 +67,12 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
 def multiple_poller_guardian_fabric(log, session_store):
     @filters.create
     async def poller_guardian(_, client, message) -> bool:
-        chat_id = message.chat.id
-        msg_id = message.id
+        try:
+            chat_id = message.chat.id
+            msg_id = message.id
+        except AttributeError:
+            chat_id = message.message.chat.id
+            msg_id = message.message.id
         key = f"processed:msg:{chat_id}:{msg_id}"
         ttl_seconds = 60 * 30
 
