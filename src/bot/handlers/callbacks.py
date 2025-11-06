@@ -349,11 +349,14 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         kb = [[InlineKeyboardButton("назад", callback_data="cmd_start")]]
 
         if action == "info":
-            kb.append([InlineKeyboardButton("Партнёрство", callback_data="info:partner"),
-               InlineKeyboardButton("Обращение", callback_data="info:message")])
-            kb.append([InlineKeyboardButton("Помощь", callback_data="info:help")])
+            kb.append([InlineKeyboardButton("Оставить обращение", callback_data="info:request")])
 
             new_message = await callback.message.reply(base_info, reply_markup=InlineKeyboardMarkup(kb))
+        elif action == "request":
+            kb.append([InlineKeyboardButton("Партнёрство", callback_data="info:partner"),
+              InlineKeyboardButton("Обращение", callback_data="info:message")])
+            kb.append([InlineKeyboardButton("Помощь", callback_data="info:help")])
+            new_message = await callback.message.reply(request_info, reply_markup=InlineKeyboardMarkup(kb))
         elif action == "partner":
             new_message = await callback.message.reply(partner_info, reply_markup=InlineKeyboardMarkup(kb))
             await send_text_to_topic(client, settings.group_id, settings.partner_group_id, f"@{user.username} Заявляет о желании в партнёрстве, напишите в лс")
