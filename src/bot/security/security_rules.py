@@ -75,7 +75,7 @@ async def multiple_poller_guardian_fabric(log, session_store):
         key = f"processed:msg:{chat_id}:{msg_id}"
         ttl_seconds = 60 * 30
 
-        got = await session_store.set(key, "1", nx=True, ex=ttl_seconds)
+        got = await session_store.set_other(key, "1", nx=True, ex=ttl_seconds)
         if not got:
             log.debug("Skipping already-processed message %s:%s", chat_id, msg_id)
             return False
