@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sqlite3
 from pathlib import Path
 
 import uvloop
@@ -86,9 +87,18 @@ async def run_wizard():
     form_service = FormService()
 
     zigma = ""
-    while any(Path(".").glob(f"Recruitment-SO{zigma}D*")):
-        zigma += 'O'
-    app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id, api_hash=settings.api_hash)
+    try:
+        app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
+                     api_hash=settings.api_hash)
+    except sqlite3.OperationalError:
+        while any(Path(".").glob(f"Recruitment-SO{zigma}D*")):
+            zigma += 'O'
+            try:
+                app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
+                             api_hash=settings.api_hash)
+            except sqlite3.OperationalError:
+                continue
+            break
 
     operator_form_conv = FormConversation(session_store, form_service, operator_form)
     agent_form_conv = FormConversation(session_store, form_service, agent_form)
