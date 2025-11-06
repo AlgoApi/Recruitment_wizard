@@ -44,7 +44,7 @@ class RedisSessionStore:
         await self._redis.set(f'session:{user_id}', json.dumps(value), ex=expire, nx=True)
 
     async def set_other(self, key, value, nx=None, ex:int=60*30):
-        await self._redis.set(key, value, ex=ex, nx=nx)
+        return await self._redis.set(key, value, ex=ex, nx=nx)
 
     async def pop(self, user_id: int):
         val = await self.get(user_id)

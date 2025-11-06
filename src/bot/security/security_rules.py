@@ -35,8 +35,6 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
             return False
 
         try:
-            print(channel_id)
-            print(type(channel_id))
             member = await client.get_chat_member(channel_id, user.id)
             if not require_username_match:
                 return True
