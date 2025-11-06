@@ -26,7 +26,7 @@ class FormService:
 
     async def create_draft(self, user_id: int, username: str, role: str, content: dict):
         # async with AsyncSessionLocal() as session:
-        users = list(MODER_USERNAMES.values)
+        users = list(MODER_USERNAMES.values())
         if self._sigma < 0:
             last_id = await self.get_last_id_from_db()
             if not last_id:
