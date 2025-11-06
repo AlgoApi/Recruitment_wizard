@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from pathlib import Path
+
 import uvloop
 from pyrogram import Client, filters
 from pyrogram.errors import UserNotParticipant
@@ -83,7 +85,10 @@ async def run_wizard():
     session_store = await create_session_store()
     form_service = FormService()
 
-    app = Client('Recruitment-SOD', bot_token=settings.bot_token, api_id=settings.api_id, api_hash=settings.api_hash)
+    zigma = ""
+    while any(Path(".").glob(f"Recruitment-SO{zigma}D*")):
+        zigma += 'O'
+    app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id, api_hash=settings.api_hash)
 
     operator_form_conv = FormConversation(session_store, form_service, operator_form)
     agent_form_conv = FormConversation(session_store, form_service, agent_form)
