@@ -32,16 +32,13 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
     async def predicate(_, client, message) -> bool:
         user = message.from_user
         if not user:
-            return False  # нет данных о пользователе (например, service message)
+            return False
 
         try:
             member = await client.get_chat_member(channel_id, user.id)
-            # Если нужно только наличие — достаточно успешного возврата member
             if not require_username_match:
                 return True
 
-            # require_username_match == True: проверяем username
-            # если username отсутствует в объекте member.user или в message.from_user -> False
             member_username = (member.user.username or "").lower()
             msg_username = (user.username or "").lower()
             if not bool(member_username) and member_username == msg_username:
