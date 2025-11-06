@@ -346,6 +346,10 @@ async def run_wizard():
         except AttributeError:
             pass
 
+    @app.on_message(filters.command("myoper") & mpg_fabric(logger, session_store) & allowed_admin_rule)
+    async def opers(client: Client, message):
+        await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
+
     logger.info('Starting Pyrogram bot')
     await app.start()
     try:
