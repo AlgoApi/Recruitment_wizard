@@ -67,6 +67,23 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
 
     return filters.create(predicate)
 
+async def multiple_poller_guardian_fabric(log, session_store):
+    @filters.create
+    async def poller_guardian(_, client, message) -> bool:
+        chat_id = message.chat.id
+        msg_id = message.id
+        key = f"processed:msg:{chat_id}:{msg_id}"
+        ttl_seconds = 60 * 30
+
+        got = await session_store.set(key, "1", nx=True, ex=ttl_seconds)
+        if not got:
+            log.debug("Skipping already-processed message %s:%s", chat_id, msg_id)
+            return False
+        log.info("Accepted message for processing %s:%s", chat_id, msg_id)
+        return True
+
+    return poller_guardian
+
 allowed_superadmin_rule = superadmin_rule_fabric()
 allowed_moder_rule = moder_rule_fabric()
 allowed_admin_rule = admin_rule_fabric()

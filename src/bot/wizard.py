@@ -20,10 +20,12 @@ from .security.security_rules import allowed_admin_rule, ADMIN_USERNAMES
 from .security.security_rules import allowed_moder_rule, MODER_USERNAMES
 from .security.security_rules import allowed_superadmin_rule
 from .security.security_rules import member_rule
+from .security.security_rules import multiple_poller_guardian_fabric as mpg_fabric
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-ALL_CMDS = ["start", "help", "fill", "whoami", "del_admin", "del_moderator", "add_admin", "add_moderator"]
+ALL_CMDS = ["start", "help", "fill", "whoami", "del_admin", "del_moderator", "add_admin", "add_moderator", "stat7",
+            "stat30", "stat365", "xxl7", "xxl30", "xxl365"]
 
 async def is_user_in_chat(app: Client, chat_id: int, user_id: int, username: str) -> bool:
     """
@@ -86,7 +88,7 @@ async def run_wizard():
     operator_form_conv = FormConversation(session_store, form_service, operator_form)
     agent_form_conv = FormConversation(session_store, form_service, agent_form)
 
-    @app.on_message(filters.command(['start', 'help']) & filters.private & member_rule)
+    @app.on_message(filters.command(['start', 'help']) & filters.private & member_rule & mpg_fabric(logger, session_store))
     async def cmd_start(client: Client, message: Message):
         text = ""
         commands = [
@@ -136,7 +138,7 @@ async def run_wizard():
         await operator_form_conv.start(client, message)
     '''
 
-    @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule & member_rule)
+    @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_add_moder(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -150,7 +152,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule & member_rule)
+    @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_add_admin(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -164,7 +166,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule) & member_rule)
+    @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule) & member_rule & mpg_fabric(logger, session_store))
     async def cmd_del_moder(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -189,7 +191,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule & member_rule)
+    @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_del_admin(client: Client, message: Message):
         args = message.command
         if len(args) > 1:
@@ -214,43 +216,42 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-
-    @app.on_message(filters.command("stat7") & filters.private & allowed_admin_rule & member_rule)
+    @app.on_message(filters.command("stat7") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         data = await form_service.get_forms_stats(period="7 days")
         text = "Общая статистика заявок за послдение 7 дней:\n"
         text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("stat30") & filters.private & allowed_admin_rule)
+    @app.on_message(filters.command("stat30") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         data = await form_service.get_forms_stats(period="29 days")
         text = "Общая статистика заявок за послдение 30 дней:\n"
         text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("stat365") & filters.private & allowed_admin_rule)
+    @app.on_message(filters.command("stat365") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         data = await form_service.get_forms_stats(period="364 days")
         text = "Общая статистика заявок за послдение 365 дней:\n"
         text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("xxl7") & filters.private & allowed_admin_rule)
+    @app.on_message(filters.command("xxl7") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         data = await form_service.get_forms_stats(period="6 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 7 дней:\n"
         text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("xxl30") & filters.private & allowed_admin_rule)
+    @app.on_message(filters.command("xxl30") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         data = await form_service.get_forms_stats(period="29 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 30 дней:\n"
         text += stat_text_gen(data)
         await message.reply(text)
 
-    @app.on_message(filters.command("xxl365") & filters.private & allowed_admin_rule)
+    @app.on_message(filters.command("xxl365") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         data = await form_service.get_forms_stats(period="364 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 365 дней:\n"
@@ -258,7 +259,7 @@ async def run_wizard():
         await message.reply(text)
 
 
-    @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & member_rule)
+    @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):
         form = await form_service.get_form(None, "operator", assigned_to=MODER_USERNAMES.get(message.from_user.username))
 
@@ -293,19 +294,19 @@ async def run_wizard():
         except Exception as e:
             await message.reply_text(f"Ошибка при отправке заявки #{form.id}: {e}")
 
-    @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule)
+    @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule & mpg_fabric(logger, session_store))
     async def catch_all(client: Client, message: Message):
         # Any non-command message is considered as input to the current FSM
         await operator_form_conv.handle_message(client, message)
         await agent_form_conv.handle_message(client, message)
 
-    @app.on_callback_query(member_rule)
+    @app.on_callback_query(member_rule & mpg_fabric(logger, session_store))
     async def on_callback(client: Client, callback: CallbackQuery):
         await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
         await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
         await callback_global_router(client, callback, form_service, session_store)
 
-    @app.on_message(filters.command("whoami"))
+    @app.on_message(filters.command("whoami") & mpg_fabric(logger, session_store))
     async def whoami(client: Client, message):
         await message.reply_text(f"CHAT -> id: {message.chat.id} type: {message.chat.type} title: {getattr(message.chat, 'title', None)}, reply_to_message_id: {message.reply_to_message_id}")
         try:
