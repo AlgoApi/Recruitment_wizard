@@ -4,6 +4,7 @@ Prefer Redis for horizontal scaling. A simple in-memory fallback is provided for
 """
 import json
 import asyncio
+from typing import Optional
 
 import aioredis
 
@@ -43,14 +44,18 @@ class RedisSessionStore:
         await self._redis.ping()
         await self._redis.set(f'session:{user_id}', json.dumps(value), ex=expire, nx=True)
 
-    async def set_other(self, key, value, nx=None, ex:int=60*30):
-        return await self._redis.set(key, value, ex=ex, nx=nx)
+    async def set_other(self, key, value, nx:Optional[bool]=False, ex:int=60*30, xx:Optional[bool]=False):
+        return await self._redis.set(key, value, ex=ex, nx=nx, xx=xx)
 
     async def pop(self, user_id: int):
         val = await self.get(user_id)
         await self._redis.delete(f'session:{user_id}')
         await self._redis
         return val
+
+    async def del_other(self, key:str):
+        await self._redis.delete(key)
+        await self._redis
 
 class MemorySessionStore:
     def __init__(self):

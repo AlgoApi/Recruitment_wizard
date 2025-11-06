@@ -324,6 +324,11 @@ async def run_wizard():
         await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
         await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
         await callback_global_router(client, callback, form_service, session_store)
+        chat_id = callback.message.chat.id
+        msg_id = callback.message.id
+        key = f"processed:msg:{chat_id}:{msg_id}"
+        await session_store.del_other(key)
+        logger.info("Cleared callback for processing %s:%s", chat_id, msg_id)
 
     @app.on_message(filters.command("whoami") & mpg_fabric(logger, session_store))
     async def whoami(client: Client, message):
