@@ -23,7 +23,10 @@ class RedisSessionStore:
         for _ in range(3):
             try:
                 await self._redis.ping()
-                await self._redis.set("__warmup__", "1", ex=5)
+                govno = await self._redis.set("__warmup__", "1", ex=5)
+                logger.info(f"test return value for redis set: {type(govno)}")
+                if type(govno) is not bool:
+                    logger.error("FAILED, is mast be bool")
                 break
             except Exception as e:
                 logging.warning("Redis warmup failed, retrying: %s", e)
