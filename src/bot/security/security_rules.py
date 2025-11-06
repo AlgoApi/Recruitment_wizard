@@ -70,9 +70,13 @@ def multiple_poller_guardian_fabric(log, session_store):
         try:
             chat_id = message.chat.id
             msg_id = message.id
+            if message.from_user.is_bot:
+                return False
         except AttributeError:
             chat_id = message.message.chat.id
             msg_id = message.message.id
+            if message.from_user.is_bot:
+                return False
         key = f"processed:msg:{chat_id}:{msg_id}"
         ttl_seconds = 60 * 30
 
