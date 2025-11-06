@@ -28,7 +28,7 @@ from .security.security_rules import multiple_poller_guardian_fabric as mpg_fabr
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 ALL_CMDS = ["start", "help", "fill", "whoami", "del_admin", "del_moderator", "add_admin", "add_moderator", "stat7",
-            "stat30", "stat365", "xxl7", "xxl30", "xxl365"]
+            "stat30", "stat365", "xxl7", "xxl30", "xxl365", "myoper"]
 
 async def is_user_in_chat(app: Client, chat_id: int, user_id: int, username: str) -> bool:
     """
@@ -123,6 +123,7 @@ async def run_wizard():
             commands.append(BotCommand(command="view", description="Просмотр пришедших анкет"))
             text += '/stat[7/30/365] - Просмотр общей статистики за столько-то дней\n'
             text += '/xll[7/30/365] - Просмотр личной статистики за столько-то дней\n'
+            text += '/myoper - Просмотр текущего закреплённого модератора\n'
             text += '\n'
         if message.from_user.username.lower() == settings.superadmin_username.lower():
             text += '/add_admin <username>(без собачки) - Добавить права админа пользователю\n'
@@ -313,6 +314,10 @@ async def run_wizard():
         except Exception as e:
             await message.reply_text(f"Ошибка при отправке заявки #{form.id}: {e}")
 
+    @app.on_message(filters.command("myoper") & mpg_fabric(logger, session_store) & allowed_admin_rule & filters.private)
+    async def opers(client: Client, message):
+        await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
+
     @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule & mpg_fabric(logger, session_store))
     async def catch_all(client: Client, message: Message):
         # Any non-command message is considered as input to the current FSM
@@ -346,9 +351,7 @@ async def run_wizard():
         except AttributeError:
             pass
 
-    @app.on_message(filters.command("myoper") & mpg_fabric(logger, session_store) & allowed_admin_rule)
-    async def opers(client: Client, message):
-        await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
+
 
     logger.info('Starting Pyrogram bot')
     await app.start()
