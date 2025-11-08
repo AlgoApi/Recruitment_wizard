@@ -6,7 +6,7 @@ import json
 import asyncio
 from typing import Optional
 
-import aioredis
+import redis as aioredis
 
 from ..config import settings
 import logging
