@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+*.env
+*.session
+*.old
+logs
+.idea
+/.idea
+src/res
+__pycache__
+Dockerfile
+entrypoint.sh
