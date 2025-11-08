@@ -7,9 +7,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c3dd7351-2bed-417b-8356-b3904a04f762" name="Changes" comment="UX/UI">
+    <list default="true" id="c3dd7351-2bed-417b-8356-b3904a04f762" name="Changes" comment="UI/UX">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bot/handlers/callbacks.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/bot/handlers/callbacks.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -195,54 +195,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1760161758375</updated>
-    </task>
-    <task id="LOCAL-00001" summary="init">
-      <option name="closed" value="true" />
-      <created>1760410322377</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1760410322377</updated>
-    </task>
-    <task id="LOCAL-00002" summary="I'm tired of writing comments">
-      <option name="closed" value="true" />
-      <created>1760928226699</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1760928226699</updated>
-    </task>
-    <task id="LOCAL-00003" summary="Video support&#10;User friandly UI/UX">
-      <option name="closed" value="true" />
-      <created>1760989756038</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1760989756038</updated>
-    </task>
-    <task id="LOCAL-00004" summary="oups">
-      <option name="closed" value="true" />
-      <created>1761025364778</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1761025364778</updated>
-    </task>
-    <task id="LOCAL-00005" summary="implemented trouble button&#10;optimized callbacks logic&#10;implemented telegram menu button">
-      <option name="closed" value="true" />
-      <created>1761076311468</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1761076311468</updated>
-    </task>
-    <task id="LOCAL-00006" summary="oups">
-      <option name="closed" value="true" />
-      <created>1761076852324</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1761076852324</updated>
     </task>
     <task id="LOCAL-00007" summary="oups&#10;fix back button on info&#10;fix callbacks logic">
       <option name="closed" value="true" />
@@ -444,12 +396,220 @@
       <option name="project" value="LOCAL" />
       <updated>1761388436083</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="member filter">
+      <option name="closed" value="true" />
+      <created>1762107179719</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1762107179719</updated>
+    </task>
+    <task id="LOCAL-00033" summary="fixx">
+      <option name="closed" value="true" />
+      <created>1762107946812</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1762107946812</updated>
+    </task>
+    <task id="LOCAL-00034" summary="admin now can use view command&#10;button notifies that the user has subscribed to the channel&#10;some optimizations">
+      <option name="closed" value="true" />
+      <created>1762200048578</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1762200048579</updated>
+    </task>
+    <task id="LOCAL-00035" summary="text fixes&#10;stats recoded">
+      <option name="closed" value="true" />
+      <created>1762202634898</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1762202634898</updated>
+    </task>
+    <task id="LOCAL-00036" summary="some fixes">
+      <option name="closed" value="true" />
+      <created>1762203343090</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1762203343090</updated>
+    </task>
+    <task id="LOCAL-00037" summary="fix send_message in operator_new_anketa">
+      <option name="closed" value="true" />
+      <created>1762281747673</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1762281747673</updated>
+    </task>
+    <task id="LOCAL-00038" summary="Added support for multiple poller mode">
+      <option name="closed" value="true" />
+      <created>1762433812799</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1762433812800</updated>
+    </task>
+    <task id="LOCAL-00039" summary="Added support for multiple poller mode">
+      <option name="closed" value="true" />
+      <created>1762435292645</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1762435292645</updated>
+    </task>
+    <task id="LOCAL-00040" summary="Added support for multiple poller mode">
+      <option name="closed" value="true" />
+      <created>1762435819329</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1762435819329</updated>
+    </task>
+    <task id="LOCAL-00041" summary="now existing pyrogram sessions are used, if any">
+      <option name="closed" value="true" />
+      <created>1762437967736</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1762437967736</updated>
+    </task>
+    <task id="LOCAL-00042" summary="change channel_id to string">
+      <option name="closed" value="true" />
+      <created>1762441561346</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1762441561346</updated>
+    </task>
+    <task id="LOCAL-00043" summary="multiple_poller_guardian for callbackquery">
+      <option name="closed" value="true" />
+      <created>1762444375258</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1762444375258</updated>
+    </task>
+    <task id="LOCAL-00044" summary="fix reusable callbacks in multiple_poller_guardian">
+      <option name="closed" value="true" />
+      <created>1762446395153</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1762446395153</updated>
+    </task>
+    <task id="LOCAL-00045" summary="fix self message catch">
+      <option name="closed" value="true" />
+      <created>1762446816160</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1762446816160</updated>
+    </task>
+    <task id="LOCAL-00046" summary="oups">
+      <option name="closed" value="true" />
+      <created>1762446909667</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1762446909667</updated>
+    </task>
+    <task id="LOCAL-00047" summary="view selected oper">
+      <option name="closed" value="true" />
+      <created>1762452577720</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1762452577720</updated>
+    </task>
+    <task id="LOCAL-00048" summary="micro fixes">
+      <option name="closed" value="true" />
+      <created>1762454753677</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1762454753677</updated>
+    </task>
+    <task id="LOCAL-00049" summary="micro fixes">
+      <option name="closed" value="true" />
+      <created>1762455060155</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1762455060155</updated>
+    </task>
+    <task id="LOCAL-00050" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1762455833061</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1762455833062</updated>
+    </task>
+    <task id="LOCAL-00051" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1762456439841</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1762456439842</updated>
+    </task>
+    <task id="LOCAL-00052" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1762456532356</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1762456532356</updated>
+    </task>
+    <task id="LOCAL-00053" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1762456928919</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1762456928919</updated>
+    </task>
+    <task id="LOCAL-00054" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1762457217223</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1762457217223</updated>
+    </task>
+    <task id="LOCAL-00055" summary="UI/UX">
+      <option name="closed" value="true" />
+      <created>1762632116764</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1762632116764</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="108cbc61-2e1d-4c3f-bbf2-ebefd2e68300" value="TOOL_WINDOW" />
+        <entry key="5183f978-f9cc-4e98-aa76-04ea23bf4f51" value="TOOL_WINDOW" />
+      </map>
+    </option>
     <option name="TAB_STATES">
       <map>
+        <entry key="108cbc61-2e1d-4c3f-bbf2-ebefd2e68300">
+          <value>
+            <State />
+          </value>
+        </entry>
+        <entry key="5183f978-f9cc-4e98-aa76-04ea23bf4f51">
+          <value>
+            <State />
+          </value>
+        </entry>
         <entry key="MAIN">
           <value>
             <State>
@@ -471,18 +631,7 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="init" />
-    <MESSAGE value="I'm tired of writing comments" />
-    <MESSAGE value="Video support&#10;User friandly UI/UX" />
-    <MESSAGE value="implemented trouble button&#10;optimized callbacks logic&#10;implemented telegram menu button" />
-    <MESSAGE value="oups&#10;fix back button on info&#10;fix callbacks logic" />
-    <MESSAGE value="Z" />
-    <MESSAGE value="oupsi" />
-    <MESSAGE value="." />
-    <MESSAGE value="ux/ui" />
     <MESSAGE value="fix circular imports" />
-    <MESSAGE value="oups" />
-    <MESSAGE value="UI/UX" />
     <MESSAGE value="uses in getter .get for dict" />
     <MESSAGE value="UX/UI zaebal" />
     <MESSAGE value="UX/UI zaebal oups" />
@@ -491,64 +640,80 @@
     <MESSAGE value="micro fix" />
     <MESSAGE value="return keyboards&#10;protect_content" />
     <MESSAGE value="UX/UI" />
-    <option name="LAST_COMMIT_MESSAGE" value="UX/UI" />
+    <MESSAGE value="member filter" />
+    <MESSAGE value="fixx" />
+    <MESSAGE value="admin now can use view command&#10;button notifies that the user has subscribed to the channel&#10;some optimizations" />
+    <MESSAGE value="text fixes&#10;stats recoded" />
+    <MESSAGE value="some fixes" />
+    <MESSAGE value="fix send_message in operator_new_anketa" />
+    <MESSAGE value="Added support for multiple poller mode" />
+    <MESSAGE value="now existing pyrogram sessions are used, if any" />
+    <MESSAGE value="change channel_id to string" />
+    <MESSAGE value="multiple_poller_guardian for callbackquery" />
+    <MESSAGE value="fix reusable callbacks in multiple_poller_guardian" />
+    <MESSAGE value="fix self message catch" />
+    <MESSAGE value="oups" />
+    <MESSAGE value="view selected oper" />
+    <MESSAGE value="micro fixes" />
+    <MESSAGE value="UI/UX" />
+    <option name="LAST_COMMIT_MESSAGE" value="UI/UX" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>316</line>
+          <line>321</line>
           <option name="timeStamp" value="202" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>318</line>
+          <line>323</line>
           <option name="timeStamp" value="215" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>227</line>
+          <line>228</line>
           <option name="timeStamp" value="217" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>266</line>
+          <line>267</line>
           <option name="timeStamp" value="218" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>161</line>
+          <line>162</line>
           <option name="timeStamp" value="220" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>150</line>
+          <line>151</line>
           <option name="timeStamp" value="221" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>131</line>
+          <line>132</line>
           <option name="timeStamp" value="222" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>127</line>
+          <line>128</line>
           <option name="timeStamp" value="223" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>163</line>
+          <line>164</line>
           <option name="timeStamp" value="229" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>171</line>
+          <line>172</line>
           <option name="timeStamp" value="230" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/bot/handlers/callbacks.py</url>
-          <line>165</line>
+          <line>166</line>
           <option name="timeStamp" value="231" />
         </line-breakpoint>
       </breakpoints>
