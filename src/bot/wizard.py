@@ -164,7 +164,7 @@ async def run_wizard():
         if len(args) > 1:
             text_after_command = " ".join(args[1:]).lower()
             getter_setter_admitted_users_wizard("moders.txt", write=True, data=text_after_command,username=message.from_user.username)
-            MODER_USERNAMES.update({message.from_user.username:text_after_command})
+            MODER_USERNAMES.update({message.from_user.username.lower():text_after_command.lower()})
             text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
             for nick in list(MODER_USERNAMES.values()):
                 text += nick[:3] + "\n"
@@ -281,7 +281,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):
-        form = await form_service.get_form(None, "operator", assigned_to=MODER_USERNAMES.get(message.from_user.username, "Undefined"))
+        form = await form_service.get_form(None, "operator", assigned_to=MODER_USERNAMES.get(message.from_user.username.lower(), "Undefined"))
 
         if not form:
             await message.reply_text("Нет заявок в статусе ожидания.")
