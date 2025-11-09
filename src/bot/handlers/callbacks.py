@@ -102,7 +102,7 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
 async def callback_router(client: Client, callback: CallbackQuery, session_store: RedisSessionStore, form_conv: FormConversation, form_service: FormService, cmd_start: callable):
     data = callback.data or ''
     if data.startswith("info"):
-        return
+        return None
     user = callback.from_user
     session = await session_store.get(user.id) or {}
     session_role = session.get("definition_id", None)
@@ -117,14 +117,14 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
             await form_conv.start(client, callback)
 
         await safe_answer(callback)
-        return
+        return None
     elif data.startswith('agent:') and form_conv.form_def.id == "agent":
         command = await valid_start_role(client, form_service, callback, session, session_store, user.id, "agent", data)
         if command == "start":
             await form_conv.start(client, callback)
 
         await safe_answer(callback)
-        return
+        return None
 
     else:
         if data.startswith('agent:') or data.startswith('operator:'):
@@ -142,7 +142,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
             except Exception as e:
                 logger.warning(e)
         await safe_answer(callback)
-        return
+        return False
     if data == "cmd_start_exec":
         if session.get('menu_id', None):
             try:
@@ -151,7 +151,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 pass
         await cmd_start(client, callback.message)
         await safe_answer(callback)
-        return
+        return False
 
     elif data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
         await form_conv._send_page(client, callback.message.chat.id, user.id)
@@ -161,12 +161,12 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
             except MessageIdInvalid:
                 pass
         await safe_answer(callback)
-        return
+        return None
 
 
     elif session_role and session_role != form_conv.form_def.id:
         await safe_answer(callback)
-        return
+        return None
 
     elif data.startswith('trouble:'):
         _, raw_id = data.split(":")
@@ -199,7 +199,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                     logger.error("Ошибка при отправке:", e)
             await callback.message.reply_text(trouble)
         await safe_answer(callback)
-        return
+        return None
 
     elif session:
         if data.startswith('fill:page:'):
@@ -235,7 +235,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 session['menu_id'] = new_message.id
                 await session_store.set_overwrite(user.id, session)
             await safe_answer(callback)
-            return
+            return None
         elif data.startswith('nav:'):
             action = parts[1]
             form_name = parts[2]
@@ -258,7 +258,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                                 pass
                             await form_conv.start(client, callback)
                             await callback.answer()
-                            return
+                            return None
                     session['page'] = session.get('page', 0) - 1
                     pages = list(form_conv.form_def.pages())
                     session["question"] = 0
@@ -271,7 +271,7 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 await session_store.set_overwrite(user.id, session)
                 await form_conv._send_page(client, callback.message.chat.id, user.id)
             await callback.answer()
-            return
+            return None
         elif data == 'submit:confirm':
             form = await form_service.create_draft(user.id, user.username, session.get('definition_id', "UNDEFINED"), session.get('answers', {}))
             await form_service.submit_form(form)
@@ -322,20 +322,21 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                         target = key
                 await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to))
             await safe_answer(callback)
-            return
+            return None
         else:
             if not form_not_match:
                 await callback.message.reply("Нажми /start <-")
                 await safe_answer(callback)
-                return
+                return None
+            return None
     elif data == 'submit:cancel':
         await callback.message.reply('Отправка отменена.')
         await callback.answer()
-        return
+        return None
     else:
         #await callback.message.reply('Нажми /start <- тык')
         await callback.answer()
-        return
+        return None
 
 async def callback_global_router(client: Client, callback: CallbackQuery, form_service: FormService, session_store: RedisSessionStore):
     data = callback.data or ''
@@ -497,7 +498,11 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:
-                await safe_send_to_user(client, user_id, agent_accept, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
+                if assigned == MODER_USERNAMES.get("boobsmarley"):
+                    text = agent_accept_nastavnik.replace("{ASSIGNED_TO NOT ASSIGNED}", "BoobsMarley")
+                else:
+                    text = agent_accept
+                await safe_send_to_user(client, user_id, text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
             '''
             DEPRECATED
             else:  # Успешно: отправляем полную анкету назначенному менеджеру

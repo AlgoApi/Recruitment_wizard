@@ -330,8 +330,9 @@ async def run_wizard():
 
     @app.on_callback_query(member_rule & mpg_fabric(logger, session_store))
     async def on_callback(client: Client, callback: CallbackQuery):
-        await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
-        await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
+        next_pass = await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
+        if next_pass or next_pass is None:
+            await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
         await callback_global_router(client, callback, form_service, session_store)
         chat_id = callback.message.chat.id
         msg_id = callback.message.id
