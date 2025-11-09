@@ -397,9 +397,12 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
 
         i = 0
         give_a_new_rec = ""
+        cooldown = True
         match form.role:
             case "agent":
                 for key, text in agent_deny_reasons_text.items():
+                    if key != "Клишированный отказ":
+                        cooldown = False
                     if i == int(reason):
                         deny_text = text
                         deny_key = key
@@ -407,6 +410,8 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 give_a_new_rec = "operator"
             case "operator":
                 for key, text in operator_deny_reasons_text.items():
+                    if key != "Клишированный отказ":
+                        cooldown = False
                     if i == int(reason):
                         deny_text = text
                         deny_key = key
@@ -417,7 +422,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         kb = InlineKeyboardMarkup([[InlineKeyboardButton("Интересно!", callback_data=f"{give_a_new_rec}:start")]])
         await safe_send_to_user(client, user_id, text_to_user, reply_markup_v=kb)
 
-        await form_service.update_form(form_id, None, False)
+        await form_service.update_form(form_id, None, False, cooldown=cooldown)
 
         try:
             await callback.answer(f"Заявка ❌ Отклонена", show_alert=True)

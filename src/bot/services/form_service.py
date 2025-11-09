@@ -40,7 +40,7 @@ class FormService:
             self._sigma = 0
 
         form = FormModel(user_id=user_id, username=username,
-                         role=role, content=content, status=None,
+                         role=role, content=content, status=None, cooldown=True,
                          assigned_to=sorted(users)[self._sigma])
 
         self._sigma += 1
@@ -50,12 +50,14 @@ class FormService:
         logger.debug('Draft created %s', form.id)
         return form
 
-    async def update_form(self, form_id: int, content: dict | None = None, status: bool | None = None):
+    async def update_form(self, form_id: int, content: dict | None = None, status: bool | None = None, cooldown:bool | None=None):
         values = {}
         if content is not None:
             values["content"] = content
         if status is not None:
             values["status"] = status
+        if cooldown is not None:
+            values["cooldown"] = cooldown
 
         if not values:
             return None  # ничего обновлять
@@ -129,6 +131,7 @@ class FormService:
         stmt = (
             select(FormModel.created_at)
             .where(FormModel.status.is_(False))
+            .where(FormModel.cooldown.is_(True))
             .where(FormModel.user_id == user_id)
             .where(FormModel.role == role)
             .order_by(desc(FormModel.created_at))

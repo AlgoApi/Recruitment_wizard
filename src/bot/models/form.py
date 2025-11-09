@@ -14,6 +14,7 @@ class FormModel(Base):
     role = Column(String, nullable=False)
     content = Column(JSON, nullable=False, default={})
     status = Column(Boolean, nullable=True, default=None)
+    cooldown = Column(Boolean, default=True)
     assigned_to = Column(String, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
