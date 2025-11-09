@@ -136,7 +136,11 @@ async def callback_router(client: Client, callback: CallbackQuery, session_store
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
             except MessageIdInvalid:
                 pass
-        # await cmd_start()
+        if session.get('question', 0) > 0:
+            try:
+                await cmd_start()
+            except Exception as e:
+                logger.warning(e)
         await safe_answer(callback)
         return
     if data == "cmd_start_exec":
