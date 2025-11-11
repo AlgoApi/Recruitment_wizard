@@ -16,3 +16,4 @@ phonenumbers~=9.0.16
 email-validator~=2.3.0
 pyyaml~=6.0.3
 redis~=6.4.0
+asyncmy
