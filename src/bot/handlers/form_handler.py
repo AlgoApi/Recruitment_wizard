@@ -21,9 +21,11 @@ class FormConversation:
         self.validator = ValidatorWizard()
         self.validator.add_validator(email_validator, "email")
         self.validator.add_validator(phone_validator, "phone")
+        logger.info(f"init FormConversation for {form_def.id}")
 
     async def start(self, client: Client, callback: CallbackQuery):
         user = callback.from_user
+        logger.info(f"init form conversation {user.username}")
         pages = list(self.form_def.pages())
 
         session = {
@@ -40,20 +42,24 @@ class FormConversation:
             for __ in _:
                 session["count_questions"] += 1
 
+        logger.info(f"{user.username} form conversation try get old form")
         session_bd = await self.form_service.get_form(user_id=user.id, role=self.form_def.id, status=True)
         if session_bd:
             session["answers"] = session_bd.content
-        session_old = await self.session_store.get(user.id) or {}
+        logger.info(f"{user.username} form conversation try get cached form")
+        sessiiion_old = await self.session_store.get(user.id) or {}
 
-        if session_old.get('menu_id', None):
+        if sessiiion_old.get('menu_id', None):
             try:
-                await client.delete_messages(callback.message.chat.id, session_old['menu_id'])
+                await client.delete_messages(callback.message.chat.id, sessiiion_old['menu_id'])
             except MessageIdInvalid:
                 pass
 
-        if session_old and session_old.get("definition_id", "") != session["definition_id"]:
+        if sessiiion_old and sessiiion_old.get("definition_id", "") != session["definition_id"]:
+            logger.info(f"{user.username} form conversation set_overwrite form")
             await self.session_store.set_overwrite(user.id, session)
         else:
+            logger.info(f"{user.username} form conversation set_initialize form")
             await self.session_store.set_initialize(user.id, session)
 
         if self.form_def.video:
@@ -66,18 +72,23 @@ class FormConversation:
 
     async def handle_message(self, client: Client, message: Message):
         user = message.from_user
+        logger.info(f"{user.username} handle_message received message")
         session = await self.session_store.get(user.id) or {}
         if session.get('definition_id') != self.form_def.id:
+            logger.info(f"{user.username} handle_message rejected message because {session.get('definition_id')} != {self.form_def.id}")
             return
         if not session["run"]:
+            logger.info(f"{user.username} handle_message rejected message because form filling has not started")
             await message.reply('Нажмите Заполнить/Изменить чтобы начать.')
             return
         if not session:
+            logger.info(f"{user.username} handle_message rejected message because session not found")
             await message.reply('Сессия не найдена. Наберите /start чтобы начать.')
             return
         page_idx = session.get('page', 0)
         fields = list(self.form_def.pages())
         if page_idx >= len(fields):
+            logger.info(f"{user.username} handle_message rejected message because page not found")
             await message.reply('Страницы не найдены — начните заново. Наберите /start')
             return
 
@@ -105,23 +116,29 @@ class FormConversation:
                 if re_val:
                     val = int(re_val.group())
                 else:
+                    logger.info(f"{user.username} handle_message rejected message because NAN")
                     await message.reply(f'Так не пойдёт, введите число')
                     return
+            logger.info(f"{user.username} handle_message try validate message")
             status, validator_message = self.validator.validate_answer(target, val)
             if not status:
+                logger.info(f"{user.username} handle_message rejected message because validation failed")
                 await message.reply(f'Так не пойдёт, {validator_message}')
                 return
 
         if target.required and not val:
+            logger.warning(f"{user.username} handle_message rejected message because {target.label} not filled")
             await message.reply(f'Поле "{target.label}" обязательно.')
             return
 
+        logger.warning(f"{user.username} handle_message accepted message")
         session['answers'][target.key] = val
         session['question'] += 1
         await self.session_store.set_overwrite(user.id, session)
 
         all_answered = all(f.key in session['answers'] for f in page_fields)
         if all_answered:
+            logger.warning(f"{user.username} handle_message form pages")
             await self._send_page_controls(client, message.chat.id, user.id, session)
         else:
             new_needed_vl = page_fields[session['question']].label
@@ -131,8 +148,10 @@ class FormConversation:
             await message.reply(text)
 
     async def _send_page(self, client, chat_id: int, user_id: int):
+        logger.info(f"{user_id} _send_page form page")
         session = await self.session_store.get(user_id)
         page_idx = session['page']
+        logger.info(f"{user_id} _send_page page {page_idx}")
         pages = list(self.form_def.pages())
         if page_idx >= len(pages):
             page_idx =- 1
@@ -166,6 +185,7 @@ class FormConversation:
             kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
 
+        logger.info(f"{user_id} _send_page send page")
         if page_fields[0].animation:
             sent_message = await client.send_animation(chat_id=chat_id, caption=text, reply_markup=InlineKeyboardMarkup(kb),
                                                    animation=page_fields[0].animation)
@@ -209,3 +229,5 @@ class FormConversation:
         session['page'] = session.get('page', 0) + 1
         await self.session_store.set_overwrite(user_id, session)
         await self._send_page(client, chat_id, user_id)
+
+logger.info("Spellbinder IMPORTED")

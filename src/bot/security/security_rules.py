@@ -1,8 +1,12 @@
+import logging
+
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from ..config import settings
 from pyrogram.errors import UserNotParticipant, FloodWait, Forbidden
+
+logger = logging.getLogger(__name__)
 
 MODER_USERNAMES = dict()
 ADMIN_USERNAMES = dict()
@@ -14,16 +18,19 @@ async def send_subscribe_btn(client, user_id):
                                    [InlineKeyboardButton("Я подписался!", callback_data="cmd_start_exec")]]))
 
 def moder_rule_fabric():
+    logger.info("Moderation Rule Fabric exec")
     return filters.create(lambda _, __, message: (
         bool(message.from_user and (message.from_user.username or "").lower() in {u.lower() for u in list(MODER_USERNAMES.values())})
     ))
 
 def admin_rule_fabric():
+    logger.info("Admin Rule Fabric exec")
     return filters.create(lambda _, __, message: (
         bool(message.from_user and (message.from_user.username or "").lower() in {u.lower() for u in list(ADMIN_USERNAMES.values())})
     ))
 
 def superadmin_rule_fabric():
+    logger.info("SuperAdmin Rule Fabric exec")
     return filters.create(lambda _, __, message: (
         bool(message.from_user and (message.from_user.username or "").lower() == settings.superadmin_username.lower())
     ))
@@ -48,18 +55,19 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
                 return True
 
         except UserNotParticipant:
+            logger.info(f"{user.username} not subscribed")
             await send_subscribe_btn(client, user.id)
             return False
         except Forbidden as e:
-            print(f"[in_channel_member_filter] bot has been not accessible for channel: {e}")
+            logger.error(f"{user.username} [in_channel_member_filter] bot has been not accessible for channel: {e}")
             await send_subscribe_btn(client, user.id)
             return False
         except FloodWait as e:
-            print(f"[in_channel_member_filter] FloodWait {e.value} sec")
+            logger.error(f"{user.username} [in_channel_member_filter] FloodWait {e.value} sec")
             await send_subscribe_btn(client, user.id)
             return False
         except Exception as e:
-            print(f"[in_channel_member_filter] unexpected error: {e}")
+            logger.error(f"{user.username} [in_channel_member_filter] unexpected error: {e}")
             return False
 
     return filters.create(predicate)

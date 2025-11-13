@@ -1,7 +1,13 @@
+import logging
+
 import yaml
 
 with open('busines_text.yaml', 'r', encoding='utf-8') as f:
     data = yaml.safe_load(f)
+
+logger = logging.getLogger(__name__)
+
+logger.info("init busines texts")
 
 operator_desc = data.get("operator_desc", "")
 agent_desc = data.get("agent_desc", "")
@@ -9,6 +15,7 @@ operator_reject = data.get("operator_reject", "")
 agent_reject = data.get("agent_reject", "")
 operator_accept = data.get("operator_accept", "")
 agent_accept = data.get("agent_accept", "")
+agent_accept_nastavnik = data.get("agent_accept_nastavnik", "")
 anketa_sent = data.get("anketa_sent", "")
 cooldown_text = data.get("cooldown_text", "")
 wait_text = data.get("wait_text", "")
@@ -28,4 +35,5 @@ operator_deny_reasons_text = data.get("operator_deny_reasons_text", {})
 agent_deny_reasons = data.get("agent_deny_reasons", [])
 agent_deny_reasons_text = data.get("agent_deny_reasons_text", {})
 
+logger.info("del yaml data")
 del data
