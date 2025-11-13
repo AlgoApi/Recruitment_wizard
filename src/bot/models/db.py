@@ -10,6 +10,7 @@ engine = create_async_engine(config.settings.database_url, future=True, echo=Fal
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 async def init_db():
+    logger.info("init db")
     from ..models import form
 
     async with engine.begin() as conn:

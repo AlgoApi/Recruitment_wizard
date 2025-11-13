@@ -1,4 +1,6 @@
 from ..forms.definition import FormDefinition
+import logging
+logger = logging.getLogger(__name__)
 
 class FormConversation:
     def __init__(self, form_def: FormDefinition):
@@ -6,6 +8,8 @@ class FormConversation:
 
 
 def format_content(content: dict, form_conv: FormConversation, indent: int = 0) -> str:
+    logger.info("Formatting dict")
+    logger.debug(f"dict content: {content}")
     pad = " " * indent
     lines: list[str] = []
     if isinstance(content, dict):
@@ -28,6 +32,7 @@ def format_content(content: dict, form_conv: FormConversation, indent: int = 0) 
 
 
 def translate_fields(key:str, form_conv: FormConversation):
+    logger.info("Translating fields")
     fields = form_conv.form_def.fields
     for field in fields:
         if field.key == key:
@@ -35,6 +40,7 @@ def translate_fields(key:str, form_conv: FormConversation):
     return key
 
 def translate_role(txt:str) -> str:
+    logger.info("Manual translating role")
     match txt:
         case "agent":
             return "агента"
@@ -42,7 +48,8 @@ def translate_role(txt:str) -> str:
             return "оператора"
     return ""
 
-def stat_text_gen(data:dict[str, dict[str, int]]) -> str:
+def stat_text_gen(data:dict[str, dict[str, int]] | list) -> str:
+    logger.info("Generating text stats")
     if type(data) is list:
         data = data[0]
     return (f"\tОжидающие анкеты оператора: {data.get("operator", {}).get("none")}\n"

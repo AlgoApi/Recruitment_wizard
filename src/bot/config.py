@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     redis_url: str
     log_level: str = "INFO"
     superadmin_username: str = "algoapi"
+    superadmin_chatid: int = 907467694
     group_id: int
     help_group_id: int
     message_group_id: int
@@ -23,6 +24,7 @@ class Settings(BaseSettings):
 
 field_names = list(Settings.model_fields.keys())
 
+logger.info("Settings loading")
 kwargs = {}
 for fname in field_names:
     val = os.getenv(fname.upper())

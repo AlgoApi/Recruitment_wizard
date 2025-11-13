@@ -23,31 +23,31 @@ WHERE assigned_to = :username;
 class FormService:
     def __init__(self):
         self._sigma = -1
+        self._sigma_lock = asyncio.Lock()
 
     async def create_draft(self, user_id: int, username: str, role: str, content: dict):
         # async with AsyncSessionLocal() as session:
+        logger.info(f"create_draft {user_id}")
         users = list(MODER_USERNAMES.values())
         if self._sigma < 0:
-            last_id = await self.get_last_id_from_db()
-            if not last_id:
-                last_id = 0
-            if last_id & 1 == 0:
-                self._sigma = 0
-            else:
-                if 1 < len(sorted(users)):
-                    self._sigma = 1
-        if self._sigma >= len(sorted(users)):
-            self._sigma = 0
+            last_id = await self.get_last_id_from_db() or 0
+            n = len(users)
+            self._sigma = (last_id + 1) % n
+
+        async with self._sigma_lock:
+            idx = self._sigma
+            assigned = users[idx]
+            self._sigma = (self._sigma + 1) % len(users)
+
+        logger.info(f"sigma {user_id}: {self._sigma}")
 
         form = FormModel(user_id=user_id, username=username,
                          role=role, content=content, status=None, cooldown=True,
-                         assigned_to=sorted(users)[self._sigma])
-
-        self._sigma += 1
+                         assigned_to=assigned)
         # session.add(form)
         # await session.commit()
         # await session.refresh(form)
-        logger.debug('Draft created %s', form.id)
+        logger.debug(f"Draft {user_id} created {form.id}")
         return form
 
     async def update_form(self, form_id: int, content: dict | None = None, status: bool | None = None, cooldown:bool | None=None):
@@ -60,8 +60,11 @@ class FormService:
             values["cooldown"] = cooldown
 
         if not values:
+            logger.debug(f"nothing to update")
             return None  # ничего обновлять
 
+        logger.info(f"update_form: {form_id}")
+        logger.debug(f"update_form {form_id}: content: {content}, status: {status}, cooldown: {cooldown}")
         async with AsyncSessionLocal() as session:
             async with session.begin():
                 stmt = update(FormModel).where(FormModel.id == form_id).values(**values).execution_options(
@@ -69,7 +72,7 @@ class FormService:
                 res = await session.execute(stmt)
                 if res.rowcount == 0:
                     return None
-                # При необходимости: вернуть актуальную запись
+                # вернуть актуальную запись
                 result = await session.execute(select(FormModel).where(FormModel.id == form_id))
                 return result.scalars().first()
 
@@ -87,44 +90,55 @@ class FormService:
         except (TypeError, ValueError) as e:
             raise ValueError("content must be JSON-serializable") from e
 
-        # 2. вставляем и получаем id через flush()
+        logger.info(f"submit_form: id: {form.id} user_id: {form.user_id} username: {form.username} role: {form.role}")
         async with AsyncSessionLocal() as session:
             async with session.begin():
                 session.add(form)
                 await session.flush()
                 new_id: Optional[int] = getattr(form, "id", None)
                 if new_id is None:
+                    logger.error("failed submit form")
                     raise RuntimeError("Failed to obtain id after flush()")
             await session.refresh(form)
             await session.commit()
         return form
 
     async def get_last_id_from_db(self):
+        logger.info(f"get_last_id_from_db")
         async with AsyncSessionLocal() as session:
             stmt = select(FormModel.id).order_by(FormModel.id.desc()).limit(1)
             result = await session.execute(stmt)
             last_id = result.scalar_one_or_none()
+            logger.debug(f"last_id: {last_id}")
             return last_id
 
     async def get_form(self, form_id: int = None, role: str = None, user_id: int = None, assigned_to: str = None, status:bool = None) -> FormModel:
+        logger.info(f"get_form: {form_id}")
         async with AsyncSessionLocal() as session:
             if status is not None:
+                logger.debug(f"status: {status}")
                 stmt = select(FormModel).where(FormModel.status.is_not(None))
             else:
+                logger.debug("status: None")
                 stmt = select(FormModel).where(FormModel.status.is_(None))
             if form_id is not None:
+                logger.debug(f"form_id: {form_id}")
                 stmt = stmt.where(FormModel.id == form_id)
             if role is not None:
+                logger.debug(f"role: {role}")
                 stmt = stmt.where(FormModel.role == role)
             if user_id is not None:
+                logger.debug(f"user_id: {user_id}")
                 stmt = stmt.where(FormModel.user_id == user_id)
             if assigned_to is not None:
+                logger.debug(f"assigned_to: {assigned_to}")
                 stmt = stmt.where(FormModel.assigned_to == assigned_to)
 
             stmt = stmt.order_by(FormModel.created_at).limit(1)
 
             result = await session.execute(stmt)
             form = result.scalars().first()
+            logger.debug(f"seccess get_form {form_id}: {form.id if form else "None"}")
             return form
 
     async def is_cooldown(self, user_id: int, role: str, hours: int = 1) -> int:
@@ -138,6 +152,7 @@ class FormService:
             .limit(1)
         )
 
+        logger.info(f"is_cooldown: {user_id}, {role}, {hours}")
         async with AsyncSessionLocal() as session:
             result = await session.execute(stmt)
             created_at = result.scalar_one_or_none()  # datetime или None
@@ -154,15 +169,18 @@ class FormService:
             return 0
 
         # округляем вверх до целых минут
+        logger.debug(f"is_cooldown: {user_id}: {int(remaining_seconds - 1) // 60 + 1}")
         return int(remaining_seconds - 1) // 60 + 1
 
     async def is_submited(self, user_id: int, role: str) -> bool:
+        logger.info(f"is_submited: {user_id}, {role}")
         async with (AsyncSessionLocal() as session):
             stmt = select(FormModel).where(FormModel.status.is_(None)
                                            ).where(FormModel.user_id == user_id).where(FormModel.role == role).limit(1)
 
             result = await session.execute(stmt)
             form = result.scalars().first()
+            logger.debug(f"is_submited {user_id}: {"True" if form else "False"}")
             return True if form else False
 
     # Асинхронная функция получения статистики
@@ -178,6 +196,7 @@ class FormService:
 
         assigned_to: если None — все, иначе — фильтруем assigned_to = :assigned_to
         """
+        logger.info(f"get_forms_stats: {assigned_to}")
         def _get_query():
             return f"""
             SELECT
@@ -218,3 +237,4 @@ class FormService:
 
         return res
 
+logger.info("Hexmaster IMPORTED")

@@ -217,3 +217,5 @@ src/res
 __pycache__
 Dockerfile
 entrypoint.sh
+
+/dist

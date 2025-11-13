@@ -1,3 +1,4 @@
+print("Welcome to AlgoApi Wizard")
 import asyncio
 import logging
 import sqlite3
@@ -30,26 +31,7 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 ALL_CMDS = ["start", "help", "fill", "whoami", "del_admin", "del_moderator", "add_admin", "add_moderator", "stat7",
             "stat30", "stat365", "xxl7", "xxl30", "xxl365", "gay"]
 
-async def is_user_in_chat(app: Client, chat_id: int, user_id: int, username: str) -> bool:
-    """
-    Проверяет, состоит ли пользователь с данным user_id и username в канале/группе.
-    Возвращает True, если пользователь найден и username совпадает.
-    """
-    try:
-        member = await app.get_chat_member(chat_id, user_id)
-        # Проверим username (в API он без @)
-        if member.user.username and member.user.username.lower() == username.lower():
-            return True
-        else:
-            return False
-    except UserNotParticipant:
-        # Пользователь не состоит в канале
-        return False
-    except Exception as e:
-        print(f"Ошибка при проверке: {e}")
-        return False
-
-def getter_setter_admitted_users_wizard(path: str, username:str,
+def getter_setter_admitted_users_wizard(logger:logging.Logger, path: str, username:str,
                       encoding: str = "utf-8", write: bool = False, overwrite: bool = False, data: str = None, _try: bool = False) -> set|None:
     result = dict()
     if write:
@@ -70,7 +52,8 @@ def getter_setter_admitted_users_wizard(path: str, username:str,
                     result.update({line.split(":")[0]:line.split(":")[1]})
         except FileNotFoundError:
             if not _try:
-                return getter_setter_admitted_users_wizard(path, username, encoding, write, overwrite, data, True)
+                return getter_setter_admitted_users_wizard(logger, path, username, encoding, write, overwrite, data, True)
+    logger.info(f"getter_setter write:{write} overwrite:{overwrite} data:{data}")
     return result
 
 async def run_wizard():
@@ -80,41 +63,54 @@ async def run_wizard():
 
     app = None
 
+    logger.info(f"init_db")
     await init_db()
 
-    MODER_USERNAMES.update(getter_setter_admitted_users_wizard(path="moders.txt", username=None))
-    ADMIN_USERNAMES.update(getter_setter_admitted_users_wizard(path="admins.txt", username=None))
+    logger.info("get moder")
+    MODER_USERNAMES.update(getter_setter_admitted_users_wizard(logger, path="moders.txt", username=None))
+    logger.info(MODER_USERNAMES)
+    logger.info("get admin")
+    ADMIN_USERNAMES.update(getter_setter_admitted_users_wizard(logger, path="admins.txt", username=None))
+    logger.info(ADMIN_USERNAMES)
 
+    logger.info("session_store")
     session_store = await create_session_store()
+    logger.info("form_service")
     form_service = FormService()
 
     zigma = ""
     attempts = 0
 
     while Path(f"Recruitment-SO{zigma}D.session").exists():
+        logger.info(f"session found '{zigma}'")
+        if len(zigma) > 1:
+            logger.error(f"session found '{zigma}' -> length > 1")
         if not Path(f"Recruitment-SO{zigma}D.session-journal").exists():
             logger.info(f"attempt use session:{zigma}")
             app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
                         api_hash=settings.api_hash)
             break
         else:
+            logger.info(f"session '{zigma}' locked")
             zigma += 'O'
 
     if not app:
+        logger.warning(f"app is None")
         app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
                              api_hash=settings.api_hash)
 
+    logger.info("init operator_form_conv")
     operator_form_conv = FormConversation(session_store, form_service, operator_form)
+    logger.info("init agent_form_conv")
     agent_form_conv = FormConversation(session_store, form_service, agent_form)
 
     @app.on_message(filters.command(['start', 'help']) & filters.private & member_rule & mpg_fabric(logger, session_store))
     async def cmd_start(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used start")
         text = ""
         commands = [
             BotCommand(command="start", description="Начать")
         ]
-        print(ADMIN_USERNAMES)
-        print(MODER_USERNAMES)
         if message.from_user.username in list(ADMIN_USERNAMES.values()):
             text += '/add_moderator <username>(без собачки) - Добавить права менеджера пользователю\n'
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
@@ -133,11 +129,13 @@ async def run_wizard():
 
             text += '\n'
 
+        logger.info(f"{message.from_user.username} start set_chat_menu_button")
         await app.set_chat_menu_button(
             chat_id=message.from_user.id,
             menu_button=MenuButtonCommands()
         )
 
+        logger.info(f"{message.from_user.username} start set_bot_commands")
         await app.set_bot_commands(commands=commands, scope=BotCommandScopeChat(chat_id=message.from_user.id))
 
         text += hello_message
@@ -150,6 +148,7 @@ async def run_wizard():
             ]
         ]
 
+        logger.info(f"{message.from_user.username} start reply")
         await message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
     '''
     DEPRECATED
@@ -160,10 +159,11 @@ async def run_wizard():
 
     @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_add_moder(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used add_moderator")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:]).lower()
-            getter_setter_admitted_users_wizard("moders.txt", write=True, data=text_after_command,username=message.from_user.username)
+            getter_setter_admitted_users_wizard(logger, "moders.txt", write=True, data=text_after_command,username=message.from_user.username)
             MODER_USERNAMES.update({message.from_user.username.lower():text_after_command.lower()})
             text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
             for nick in list(MODER_USERNAMES.values()):
@@ -174,10 +174,11 @@ async def run_wizard():
 
     @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_add_admin(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used add_admin")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
-            getter_setter_admitted_users_wizard("admins.txt", write=True, data=text_after_command, username=f"{message.from_user.username}{len(ADMIN_USERNAMES)}")
+            getter_setter_admitted_users_wizard(logger, "admins.txt", write=True, data=text_after_command, username=f"{message.from_user.username}{len(ADMIN_USERNAMES)}")
             ADMIN_USERNAMES.update({message.from_user.username:text_after_command})
             text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
             for nick in list(ADMIN_USERNAMES.values()):
@@ -188,11 +189,10 @@ async def run_wizard():
 
     @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule) & member_rule & mpg_fabric(logger, session_store))
     async def cmd_del_moder(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used del_moderator")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
-            print(MODER_USERNAMES)
-            print(text_after_command)
             if text_after_command in list(MODER_USERNAMES.values()):
                 if MODER_USERNAMES.get(message.from_user.username, "") == text_after_command:
                     for id_name, nick in list(MODER_USERNAMES.items()):
@@ -202,8 +202,7 @@ async def run_wizard():
                     for nick in list(MODER_USERNAMES.values()):
                         text += nick[:3] + "...\n"
                     await message.reply(text)
-                    print(MODER_USERNAMES)
-                    getter_setter_admitted_users_wizard("moders.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in MODER_USERNAMES.items()), username=message.from_user.username)
+                    getter_setter_admitted_users_wizard(logger, "moders.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in MODER_USERNAMES.items()), username=message.from_user.username)
                 else:
                     await message.reply("Ты можешь отправить в отставку только своих")
             else:
@@ -213,22 +212,20 @@ async def run_wizard():
 
     @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_del_admin(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used del_admin")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
             if text_after_command in list(ADMIN_USERNAMES.values()):
                 if ADMIN_USERNAMES.get(message.from_user.username, "") == text_after_command or message.from_user.username.lower() == settings.superadmin_username.lower():
-                    print(ADMIN_USERNAMES)
                     for id_name, nick in list(ADMIN_USERNAMES.items()):
                         if text_after_command == nick:
                             del ADMIN_USERNAMES[f"{id_name}"]
-                    print("----")
-                    print(ADMIN_USERNAMES)
                     text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
                     for nick in list(ADMIN_USERNAMES.values()):
                         text += nick[:3] + "...\n"
                     await message.reply(text)
-                    getter_setter_admitted_users_wizard("admins.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in ADMIN_USERNAMES.items()), username=message.from_user.username)
+                    getter_setter_admitted_users_wizard(logger, "admins.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in ADMIN_USERNAMES.items()), username=message.from_user.username)
                 else:
                     await message.reply("Ты можешь отправить в отставку только себя")
             else:
@@ -238,6 +235,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("stat7") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used stat7")
         data = await form_service.get_forms_stats(period="7 days")
         text = "Общая статистика заявок за послдение 7 дней:\n"
         text += stat_text_gen(data)
@@ -245,6 +243,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("stat30") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used stat30")
         data = await form_service.get_forms_stats(period="29 days")
         text = "Общая статистика заявок за послдение 30 дней:\n"
         text += stat_text_gen(data)
@@ -252,6 +251,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("stat365") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used stat365")
         data = await form_service.get_forms_stats(period="364 days")
         text = "Общая статистика заявок за послдение 365 дней:\n"
         text += stat_text_gen(data)
@@ -259,6 +259,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("xxl7") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used xxl7")
         data = await form_service.get_forms_stats(period="6 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 7 дней:\n"
         text += stat_text_gen(data)
@@ -266,6 +267,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("xxl30") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used xxl30")
         data = await form_service.get_forms_stats(period="29 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 30 дней:\n"
         text += stat_text_gen(data)
@@ -273,6 +275,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("xxl365") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used xxl365")
         data = await form_service.get_forms_stats(period="364 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 365 дней:\n"
         text += stat_text_gen(data)
@@ -281,6 +284,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used view")
         form = await form_service.get_form(None, "operator", assigned_to=MODER_USERNAMES.get(message.from_user.username.lower(), "Undefined"))
 
         if not form:
@@ -316,6 +320,7 @@ async def run_wizard():
 
     @app.on_message(filters.command('mymoder') & mpg_fabric(logger, session_store) & allowed_admin_rule & filters.private)
     async def opers(client: Client, message):
+        logger.info(f"{message.from_user.username} used mymoder")
         await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
 
     @app.on_message(filters.command('gay') & mpg_fabric(logger, session_store) & allowed_admin_rule)
@@ -324,15 +329,23 @@ async def run_wizard():
 
     @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule & mpg_fabric(logger, session_store))
     async def catch_all(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} not command, catch message")
         # Any non-command message is considered as input to the current FSM
         await operator_form_conv.handle_message(client, message)
         await agent_form_conv.handle_message(client, message)
 
     @app.on_callback_query(member_rule & mpg_fabric(logger, session_store))
     async def on_callback(client: Client, callback: CallbackQuery):
+        logger.info(f"{callback.from_user.username} get calllback")
         next_pass = await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
         if next_pass or next_pass is None:
+            logger.info(f"{callback.from_user.username} operator_form_conv accept calllback")
+            logger.info(f"{callback.from_user.username} agent_form_conv get calllback")
             await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
+        else:
+            logger.warning(f"{callback.from_user.username} operator_form_conv NOT accept calllback")
+
+        logger.info(f"{callback.from_user.username} callback_global_router get calllback")
         await callback_global_router(client, callback, form_service, session_store)
         chat_id = callback.message.chat.id
         msg_id = callback.message.id
@@ -358,11 +371,11 @@ async def run_wizard():
 
 
 
-    logger.info('Starting Pyrogram bot')
+    logger.info('Summoning the ARCHMAGE of AlgoApi Recruitment')
     await app.start()
     try:
         await asyncio.Event().wait()
     finally:
         await app.stop()
-
-
+    print("AVADA KEDAVRA")
+    logger.info("AVADA KEDAVRA")

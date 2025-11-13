@@ -32,50 +32,54 @@ class RedisSessionStore:
             except Exception as e:
                 logging.warning("Redis warmup failed, retrying: %s", e)
                 await asyncio.sleep(0.2)
+        logger.info("connect to redis confirmed")
 
     async def get(self, user_id: int) -> dict[str, None | str | int | dict]:
+        logger.info(f"redis get {user_id}")
         raw = await self._redis.get(f'session:{user_id}')
         return json.loads(raw) if raw else None
 
+    async def get_other(self, key) -> dict[str, None | str | int | dict]:
+        logger.info(f"redis other get {key}")
+        raw = await self._redis.get(f'{key}')
+        return json.loads(raw) if raw else None
+
     async def set_overwrite(self, user_id: int, value: dict, expire: int = 86400):
+        logger.info(f"redis set overwrite{user_id}")
+        logger.debug(f"redis set data: {json.dumps(value)}")
         await self._redis.set(f'session:{user_id}', json.dumps(value), ex=expire, xx=True)
 
     async def set_initialize(self, user_id: int, value: dict, expire: int = 86400):
         await self._redis.ping()
+        logger.info(f"redis set init {user_id}")
+        logger.debug(f"redis set data: {json.dumps(value)}")
         await self._redis.set(f'session:{user_id}', json.dumps(value), ex=expire, nx=True)
 
     async def set_other(self, key, value, nx:Optional[bool]=False, ex:int=60*30, xx:Optional[bool]=False):
+        logger.info(f"redis set other {key}")
+        logger.debug(f"redis set data: {value}")
         return await self._redis.set(key, value, ex=ex, nx=nx, xx=xx)
 
     async def pop(self, user_id: int):
+        logger.info(f"redis pop {user_id}")
         val = await self.get(user_id)
+        logger.info(f"redis _delete")
         await self._redis.delete(f'session:{user_id}')
         await self._redis
         return val
 
+    async def pop_other(self, key):
+        logger.info(f"redis other pop {key}")
+        val = await self.get_other(key)
+        logger.info(f"redis _delete")
+        await self._redis.delete(f'{key}')
+        await self._redis
+        return val
+
     async def del_other(self, key:str):
+        logger.info(f"redis delete other {key}")
         await self._redis.delete(key)
         await self._redis
-
-class MemorySessionStore:
-    def __init__(self):
-        self._store = {}
-        self._lock = asyncio.Lock()
-
-    async def connect(self):
-        return
-
-    async def get(self, user_id: int):
-        async with self._lock:
-            return self._store.get(user_id)
-
-    async def set(self, user_id: int, value: dict):
-        async with self._lock:
-            self._store[user_id] = value
-
-    async def pop(self, user_id: int):
-        async with self._lock:
-            return self._store.pop(user_id, None)
 
 async def create_session_store():
     if settings.redis_url and aioredis:
@@ -84,7 +88,7 @@ async def create_session_store():
         logger.info('Connected to redis session store')
         return s
     else:
-        logger.warning('Redis not configured or aioredis missing, using in-memory sessions PERFORMANCE LOSS!!')
-        s = MemorySessionStore()
-        await s.connect()
-        return s
+        logger.critical('Redis not configured or aioredis missing')
+        raise RuntimeError("Redis not configured or aioredis missing")
+
+logger.info("Runecaster IMPORTED")
