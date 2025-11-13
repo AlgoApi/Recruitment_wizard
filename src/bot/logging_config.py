@@ -100,21 +100,19 @@ def _send_telegram_message_sync(text: str, file:str, parse_mode: str = "HTML"):
             files = {"document": f}
             resp = requests.post(url, data=data, files=files, timeout=15)
         if resp.status_code != 200:
+            logging.getLogger(__name__).warning("Telegram send failed: %s %s", resp.status_code, resp.text)
             try:
-                logging.getLogger(__name__).error("Telegram send failed: %s %s", resp.status_code, resp.text)
-            except Exception:
-                try:
-                    url = f"https://api.telegram.org/bot{token}/sendMessage"
-                    data = {
-                        "chat_id": chat,
-                        "text": text,
-                        "parse_mode": parse_mode
-                    }
-                    resp = requests.post(url, data=data, timeout=10)
-                    if resp.status_code != 200:
-                        logging.getLogger(__name__).warning("Telegram send failed: %s %s", resp.status_code, resp.text)
-                except Exception as e:
-                    logging.getLogger(__name__).exception("Failed to send telegram message: %s", e)
+                url = f"https://api.telegram.org/bot{token}/sendMessage"
+                data = {
+                    "chat_id": chat,
+                    "text": text,
+                    "parse_mode": parse_mode
+                }
+                resp = requests.post(url, data=data, timeout=10)
+                if resp.status_code != 200:
+                    logging.getLogger(__name__).error("Telegram send failed: %s %s", resp.status_code, resp.text)
+            except Exception as e:
+                logging.getLogger(__name__).exception("Failed to send telegram message: %s", e)
     except Exception as e:
         logging.getLogger(__name__).exception("Failed to send telegram message: %s", e)
 

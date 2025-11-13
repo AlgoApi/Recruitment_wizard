@@ -148,10 +148,10 @@ class FormConversation:
             await message.reply(text)
 
     async def _send_page(self, client, chat_id: int, user_id: int):
-        logger.warning(f"{user_id} _send_page form page")
+        logger.info(f"{user_id} _send_page form page")
         session = await self.session_store.get(user_id)
         page_idx = session['page']
-        logger.warning(f"{user_id} _send_page page {page_idx}")
+        logger.info(f"{user_id} _send_page page {page_idx}")
         pages = list(self.form_def.pages())
         if page_idx >= len(pages):
             page_idx =- 1
@@ -185,7 +185,7 @@ class FormConversation:
             kb_unit.append(InlineKeyboardButton('Следующая', callback_data=f'nav:next:{session["definition_id"]}'))
         kb.append(kb_unit)
 
-        logger.warning(f"{user_id} _send_page send page")
+        logger.info(f"{user_id} _send_page send page")
         if page_fields[0].animation:
             sent_message = await client.send_animation(chat_id=chat_id, caption=text, reply_markup=InlineKeyboardMarkup(kb),
                                                    animation=page_fields[0].animation)

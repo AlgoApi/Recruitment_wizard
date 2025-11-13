@@ -151,7 +151,10 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                 try:
                     await client.delete_messages(callback.message.sender_chat.id, session['menu_id'])
                 except Exception:
-                    await client.delete_messages(callback.message.from_user.username, session['menu_id'])
+                    try:
+                        await client.delete_messages(callback.message.from_user.id, session['menu_id'])
+                    except Exception:
+                        pass
         if session.get('run', False):
             logger.debug(f"session 'run' is True")
             try:
@@ -359,12 +362,12 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             elif session.get('definition_id', "UNDEFINED") == 'operator':
                 logger.info(f"{user.username} callback router submit:confirm interpreted operator")
                 target=""
-                count = await sesssion_store.pop_other(form.assigned_to)
+                count = await sesssion_store.pop_other(form.assigned_to) or 0
                 await sesssion_store.set_other(form.assigned_to, int(count)+1)
                 for key, val in MODER_USERNAMES.items():
                     if val == form.assigned_to:
                         target = key
-                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to).replace("{COUNT NOT ASSIGNED}", int(count)+1))
+                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to).replace("{COUNT NOT ASSIGNED}", str(int(count)+1)))
                 count = await sesssion_store.set_other(key=form.assigned_to, value=int(count)+1)
             await safe_answer(callback)
             return None
