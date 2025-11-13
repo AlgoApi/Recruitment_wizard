@@ -363,12 +363,11 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                 logger.info(f"{user.username} callback router submit:confirm interpreted operator")
                 target=""
                 count = await sesssion_store.pop_other(form.assigned_to) or 0
-                await sesssion_store.set_other(form.assigned_to, int(count)+1)
+                await sesssion_store.set_other(form.assigned_to, int(count)+1, xx=True)
                 for key, val in MODER_USERNAMES.items():
                     if val == form.assigned_to:
                         target = key
                 await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to).replace("{COUNT NOT ASSIGNED}", str(int(count)+1)))
-                count = await sesssion_store.set_other(key=form.assigned_to, value=int(count)+1)
             await safe_answer(callback)
             return None
         else:
@@ -548,6 +547,8 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
 
         if role == "operator":
             logger.info(f"{user.username} global callback router form: interpreted role as operator")
+            count = await sesssion_store.pop_other(form.assigned_to) or 0
+            await sesssion_store.set_other(form.assigned_to, int(count) - 1, xx=True)
             if not new_status:  # Отклонено
                 kb = [[]]
                 i = 0
