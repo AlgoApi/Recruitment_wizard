@@ -195,14 +195,19 @@ class FormService:
 
     async def is_submited(self, user_id: int, role: str) -> bool:
         logger.info(f"is_submited: {user_id}, {role}")
-        async with (AsyncSessionLocal() as session):
-            stmt = select(FormModel).where(FormModel.status.is_(None)
-                                           ).where(FormModel.user_id == user_id).where(FormModel.role == role).limit(1)
+        async def work():
+            async with self.db.session() as session:
+                stmt = select(FormModel).where(FormModel.status.is_(None)
+                                               ).where(FormModel.user_id == user_id).where(
+                    FormModel.role == role).limit(1)
 
-            result = await session.execute(stmt)
-            form = result.scalars().first()
-            logger.debug(f"is_submited {user_id}: {"True" if form else "False"}")
-            return True if form else False
+                result = await session.execute(stmt)
+                form = result.scalars().first()
+                logger.debug(f"is_submited {user_id}: {"True" if form else "False"}")
+                return True if form else False
+
+        return await self.db.run(work, retries=3)
+
 
     # Асинхронная функция получения статистики
     async def get_forms_stats(
