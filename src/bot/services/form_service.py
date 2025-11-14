@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta, timezone
 import json
 import logging
-from typing import Optional, Dict, Any, Coroutine, List
+from typing import Optional
 import asyncio
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, text, desc
 
 from ..models.db import AsyncSessionLocal, DBManager

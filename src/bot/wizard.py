@@ -6,11 +6,10 @@ from pathlib import Path
 
 import uvloop
 from pyrogram import Client, filters
-from pyrogram.errors import UserNotParticipant
 from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, MenuButtonCommands, \
     BotCommandScopeChat, BotCommand
 
-from .models.db import init_db
+from .models.db import AsyncSessionLocal
 from .utils.busines_text import hello_message
 from .utils.utils import format_content, stat_text_gen
 from .config import settings, MAX_TRY_RECONNECT
@@ -64,7 +63,7 @@ async def run_wizard():
     app = None
 
     logger.info(f"init_db")
-    await init_db()
+    await AsyncSessionLocal.init_db()
 
     logger.info("get moder")
     MODER_USERNAMES.update(getter_setter_admitted_users_wizard(logger, path="moders.txt", username=None))
@@ -76,7 +75,7 @@ async def run_wizard():
     logger.info("session_store")
     session_store = await create_session_store()
     logger.info("form_service")
-    form_service = FormService()
+    form_service = FormService(AsyncSessionLocal)
 
     zigma = ""
     attempts = 0
