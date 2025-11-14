@@ -7,7 +7,7 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, text, desc
 
-from ..models.db import AsyncSessionLocal
+from ..models.db import AsyncSessionLocal, DBManager
 from ..models.form import FormModel
 from ..security.security_rules import MODER_USERNAMES
 
@@ -21,9 +21,10 @@ WHERE assigned_to = :username;
 
 
 class FormService:
-    def __init__(self):
+    def __init__(self, db_manager: DBManager):
         self._sigma = -1
         self._sigma_lock = asyncio.Lock()
+        self.db = db_manager
 
     async def create_draft(self, user_id: int, username: str, role: str, content: dict):
         # async with AsyncSessionLocal() as session:
@@ -65,16 +66,20 @@ class FormService:
 
         logger.info(f"update_form: {form_id}")
         logger.debug(f"update_form {form_id}: content: {content}, status: {status}, cooldown: {cooldown}")
-        async with AsyncSessionLocal() as session:
-            async with session.begin():
-                stmt = update(FormModel).where(FormModel.id == form_id).values(**values).execution_options(
-                    synchronize_session="fetch")
-                res = await session.execute(stmt)
-                if res.rowcount == 0:
-                    return None
-                # вернуть актуальную запись
-                result = await session.execute(select(FormModel).where(FormModel.id == form_id))
-                return result.scalars().first()
+
+        async def work():
+            async with self.db.session() as session:
+                async with session.begin():
+                    stmt = update(FormModel).where(FormModel.id == form_id).values(**values).execution_options(
+                        synchronize_session="fetch")
+                    res = await session.execute(stmt)
+                    if res.rowcount == 0:
+                        return None
+                    # вернуть актуальную запись
+                    result = await session.execute(select(FormModel).where(FormModel.id == form_id))
+                    return result.scalars().first()
+
+        return await self.db.run(work, retries=3)
 
     async def submit_form(self, form: FormModel):
         if not getattr(form, "user_id", None):
@@ -91,55 +96,68 @@ class FormService:
             raise ValueError("content must be JSON-serializable") from e
 
         logger.info(f"submit_form: id: {form.id} user_id: {form.user_id} username: {form.username} role: {form.role}")
-        async with AsyncSessionLocal() as session:
-            async with session.begin():
-                session.add(form)
-                await session.flush()
-                new_id: Optional[int] = getattr(form, "id", None)
-                if new_id is None:
-                    logger.error("failed submit form")
-                    raise RuntimeError("Failed to obtain id after flush()")
-            await session.refresh(form)
-            await session.commit()
-        return form
+
+        async def work():
+            async with self.db.session() as session:
+                async with session.begin():
+                    session.add(form)
+                    await session.flush()
+                    new_id: Optional[int] = getattr(form, "id", None)
+                    if new_id is None:
+                        logger.error("failed submit form")
+                        raise RuntimeError("Failed to obtain id after flush()")
+                await session.refresh(form)
+                await session.commit()
+                return form
+
+        return await self.db.run(work, retries=3)
 
     async def get_last_id_from_db(self):
         logger.info(f"get_last_id_from_db")
-        async with AsyncSessionLocal() as session:
-            stmt = select(FormModel.id).order_by(FormModel.id.desc()).limit(1)
-            result = await session.execute(stmt)
-            last_id = result.scalar_one_or_none()
-            logger.debug(f"last_id: {last_id}")
-            return last_id
+
+        async def work():
+            async with self.db.session() as session:
+                stmt = select(FormModel.id).order_by(FormModel.id.desc()).limit(1)
+                result = await session.execute(stmt)
+                last_id = result.scalar_one_or_none()
+                logger.debug(f"last_id: {last_id}")
+                return last_id
+
+        return await self.db.run(work, retries=3)
 
     async def get_form(self, form_id: int = None, role: str = None, user_id: int = None, assigned_to: str = None, status:bool = None) -> FormModel:
         logger.info(f"get_form: {form_id}")
-        async with AsyncSessionLocal() as session:
-            if status is not None:
-                logger.debug(f"status: {status}")
-                stmt = select(FormModel).where(FormModel.status.is_not(None))
-            else:
-                logger.debug("status: None")
-                stmt = select(FormModel).where(FormModel.status.is_(None))
-            if form_id is not None:
-                logger.debug(f"form_id: {form_id}")
-                stmt = stmt.where(FormModel.id == form_id)
-            if role is not None:
-                logger.debug(f"role: {role}")
-                stmt = stmt.where(FormModel.role == role)
-            if user_id is not None:
-                logger.debug(f"user_id: {user_id}")
-                stmt = stmt.where(FormModel.user_id == user_id)
-            if assigned_to is not None:
-                logger.debug(f"assigned_to: {assigned_to}")
-                stmt = stmt.where(FormModel.assigned_to == assigned_to)
 
-            stmt = stmt.order_by(FormModel.created_at).limit(1)
+        async def work():
+            async with self.db.session() as session:
+                if status is not None:
+                    logger.debug(f"status: {status}")
+                    stmt = select(FormModel).where(FormModel.status.is_not(None))
+                else:
+                    logger.debug("status: None")
+                    stmt = select(FormModel).where(FormModel.status.is_(None))
+                if form_id is not None:
+                    logger.debug(f"form_id: {form_id}")
+                    stmt = stmt.where(FormModel.id == form_id)
+                if role is not None:
+                    logger.debug(f"role: {role}")
+                    stmt = stmt.where(FormModel.role == role)
+                if user_id is not None:
+                    logger.debug(f"user_id: {user_id}")
+                    stmt = stmt.where(FormModel.user_id == user_id)
+                if assigned_to is not None:
+                    logger.debug(f"assigned_to: {assigned_to}")
+                    stmt = stmt.where(FormModel.assigned_to == assigned_to)
 
-            result = await session.execute(stmt)
-            form = result.scalars().first()
-            logger.debug(f"seccess get_form {form_id}: {form.id if form else "None"}")
-            return form
+                stmt = stmt.order_by(FormModel.created_at).limit(1)
+
+                result = await session.execute(stmt)
+                form = result.scalars().first()
+                logger.debug(f"seccess get_form {form_id}: {form.id if form else "None"}")
+                return form
+
+        return await self.db.run(work, retries=3)
+
 
     async def is_cooldown(self, user_id: int, role: str, hours: int = 1) -> int:
         stmt = (
@@ -153,9 +171,13 @@ class FormService:
         )
 
         logger.info(f"is_cooldown: {user_id}, {role}, {hours}")
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(stmt)
-            created_at = result.scalar_one_or_none()  # datetime или None
+
+        async def work():
+            async with self.db.session() as session:
+                result = await session.execute(stmt)
+                return result.scalar_one_or_none()  # datetime или None
+
+        created_at = await self.db.run(work, retries=3)
 
         if created_at is None:
             return 0
@@ -214,9 +236,14 @@ class FormService:
             def _val(name: str, row) -> int:
                 v = row[name] if row is not None else None
                 return int(v) if v is not None else 0
-            async with AsyncSessionLocal() as session:
-                result = await session.execute(text(_get_query()), {"assigned_to": assigned_to, "tz": tz})
-                row = result.fetchone()
+
+            async def work():
+                async with self.db.session() as session:
+                    result = await session.execute(text(_get_query()), {"assigned_to": assigned_to, "tz": tz})
+                    return result.fetchone()
+
+            row = await self.db.run(work, retries=3)
+
             out = {
                 "agent": {
                     "none": _val(f"agent_none", row),
