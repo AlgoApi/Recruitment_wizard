@@ -370,6 +370,22 @@ async def run_wizard():
     @app.on_callback_query(member_rule & mpg_fabric(logger, session_store, False))
     async def on_callback(client: Client, callback: CallbackQuery):
         logger.info(f"{callback.from_user.username} get calllback")
+        try:
+            chat_id = callback.from_user.id
+        except AttributeError:
+            try:
+                chat_id = callback.message.chat.id
+            except AttributeError:
+                chat_id = callback.message.from_user.id
+
+        msg_id = callback.message.id
+
+        key = f"processed:msg:{chat_id}:{msg_id}"
+        ttl_seconds = 60 * 30
+        got = await session_store.set_other(key, "1", nx=True, ex=ttl_seconds)
+        if not got:
+            logger.info("SSSkipping already-processed message %s:%s", chat_id, msg_id)
+            return False
         next_pass = await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
         if next_pass or next_pass is None:
             logger.info(f"{callback.from_user.username} operator_form_conv accept calllback")
@@ -380,6 +396,11 @@ async def run_wizard():
 
         logger.info(f"{callback.from_user.username} callback_global_router get calllback")
         await callback_global_router(client, callback, form_service, session_store)
+        goat = await session_store.pop_other(key)
+        if not goat:
+            logger.error("callback btn is not unlock %s:%s", chat_id, msg_id)
+            return False
+        return None
 
     @app.on_message(filters.command("whoami") & mpg_fabric(logger, session_store))
     async def whoami(client: Client, message):
