@@ -18,3 +18,16 @@ class FormModel(Base):
     assigned_to = Column(String(64), default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class UserModel(Base):
+    __tablename__ = 'Users'
+
+    id = Column(Integer, Identity(start=1, cycle=False), primary_key=True, index=True)
+    user_id = Column(BigInteger, index=True, nullable=False, unique=True)
+    username = Column(String(64), nullable=False)
+    role = Column(String(32), nullable=True)
+    assigned_to = Column(String(64), default=False, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+

@@ -17,6 +17,7 @@ from .logging_config import setup_logging
 from .storage.session_store import create_session_store
 from .handlers.form_handler import FormConversation
 from .services.form_service import FormService
+from .services.user_service import UserService
 from .handlers.callbacks import callback_router, callback_global_router
 from .forms.definition import operator_form, agent_form
 from .security.security_rules import allowed_admin_rule, ADMIN_USERNAMES
@@ -76,6 +77,7 @@ async def run_wizard():
     session_store = await create_session_store()
     logger.info("form_service")
     form_service = FormService(AsyncSessionLocal)
+    user_service = UserService(AsyncSessionLocal)
 
     zigma = ""
     attempts = 0
@@ -149,6 +151,11 @@ async def run_wizard():
 
         logger.info(f"{message.from_user.username} start reply")
         await message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
+
+        logger.info(f"{message.from_user.username} try to add in 'users' table")
+        user = await user_service.create_draft(message.from_user.id, message.from_user.username)
+        await user_service.submit_user(user)
+
     '''
     DEPRECATED
     @app.on_message(filters.command(['fill']) & filters.private)
@@ -280,6 +287,33 @@ async def run_wizard():
         text += stat_text_gen(data)
         await message.reply(text)
 
+    @app.on_message(filters.command("setspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
+    async def cmd_view_stat(client: Client, message: Message):
+        logger.info(f"{message.from_user.username} used setspam")
+        await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, после /startspam <- тык")
+
+    @app.on_message(filters.command("startspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
+    async def cmd_view_stat(client: Client, message: Message):
+        accepted_rassilok = 0
+        rejected_rassilok = 0
+        copy_message_id = message.id - 1
+        await message.reply("Рассылка началась")
+
+        users = await user_service.get_user(limit=False)
+
+        for user_entry in users:
+            try:
+                msg = await client.copy_message(chat_id=user_entry.user_id, message_id=copy_message_id,
+                                                from_chat_id=message.chat.id)
+                if msg is not None:
+                    accepted_rassilok += 1
+                else:
+                    rejected_rassilok += 1
+            except Exception:
+                logger.warning(f"Failed to send rassilka to {user_entry.user_id}")
+                rejected_rassilok += 1
+        await message.reply(f"Рассылка окончена.\nотправлено: {accepted_rassilok}, отклонено: {rejected_rassilok}")
+
 
     @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):
@@ -333,7 +367,7 @@ async def run_wizard():
         await operator_form_conv.handle_message(client, message)
         await agent_form_conv.handle_message(client, message)
 
-    @app.on_callback_query(member_rule & mpg_fabric(logger, session_store))
+    @app.on_callback_query(member_rule & mpg_fabric(logger, session_store, False))
     async def on_callback(client: Client, callback: CallbackQuery):
         logger.info(f"{callback.from_user.username} get calllback")
         next_pass = await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
@@ -346,11 +380,6 @@ async def run_wizard():
 
         logger.info(f"{callback.from_user.username} callback_global_router get calllback")
         await callback_global_router(client, callback, form_service, session_store)
-        chat_id = callback.message.chat.id
-        msg_id = callback.message.id
-        key = f"processed:msg:{chat_id}:{msg_id}"
-        await session_store.del_other(key)
-        logger.info("Cleared callback for processing %s:%s", chat_id, msg_id)
 
     @app.on_message(filters.command("whoami") & mpg_fabric(logger, session_store))
     async def whoami(client: Client, message):

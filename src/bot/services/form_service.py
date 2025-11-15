@@ -12,13 +12,6 @@ from ..security.security_rules import MODER_USERNAMES
 
 logger = logging.getLogger(__name__)
 
-MV_USER_SQL = text("""
-SELECT assigned_to, role, status, week_count, month_count, year_count
-FROM mv_forms_stats_by_user
-WHERE assigned_to = :username;
-""")
-
-
 class FormService:
     def __init__(self, db_manager: DBManager):
         self._sigma = -1
