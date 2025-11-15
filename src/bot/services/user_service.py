@@ -93,11 +93,16 @@ class UserService:
 
                 result = await session.execute(stmt)
                 user = result.scalars()
-                logger.debug(f"seccess get_user {user_entry_id}: {user.id if user else "None"}")
 
                 if limit:
-                    return user.first()
+                    user = user.first()
+                    logger.debug(f"success get_user {user_entry_id}: {user.id if user else "None"}")
+                    return user
                 else:
+                    if user is not None:
+                        logger.debug(f"success get_user {user_entry_id}")
+                    else:
+                        logger.error(f"error get_user {user_entry_id} user is none")
                     return user
 
         return await self.db.run(work, retries=3)
