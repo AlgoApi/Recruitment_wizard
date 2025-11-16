@@ -45,8 +45,8 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
             if not require_username_match:
                 return True
 
-            member_username = (member.user.username or "").lower()
-            msg_username = (user.username or "").lower()
+            member_username = (member.user.username or member.user.id).lower()
+            msg_username = (user.username or user.id).lower()
             if not bool(member_username) and member_username == msg_username:
                 await send_subscribe_btn(client, user.id)
                 return True
@@ -54,19 +54,19 @@ def in_channel_member_fabric(channel_id: int, require_username_match: bool = Fal
                 return True
 
         except UserNotParticipant:
-            logger.info(f"{user.username} not subscribed")
+            logger.info(f"{user.username or user.id} {user.first_name} not subscribed")
             await send_subscribe_btn(client, user.id)
             return True
         except Forbidden as e:
-            logger.error(f"{user.username} [in_channel_member_filter] bot has been not accessible for channel: {e}")
+            logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] bot has been not accessible for channel: {e}")
             await send_subscribe_btn(client, user.id)
             return True
         except FloodWait as e:
-            logger.error(f"{user.username} [in_channel_member_filter] FloodWait {e.value} sec")
+            logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] FloodWait {e.value} sec")
             await send_subscribe_btn(client, user.id)
             return True
         except Exception as e:
-            logger.error(f"{user.username} [in_channel_member_filter] unexpected error: {e}")
+            logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] unexpected error: {e}")
             return True
 
     return filters.create(predicate)

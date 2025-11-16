@@ -107,7 +107,7 @@ async def run_wizard():
 
     @app.on_message(filters.command(['start', 'help']) & filters.private & member_rule & mpg_fabric(logger, session_store))
     async def cmd_start(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used start")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used start")
         text = ""
         commands = [
             BotCommand(command="start", description="Начать")
@@ -121,22 +121,21 @@ async def run_wizard():
             text += '/stat[7/30/365] - Просмотр общей статистики за столько-то дней\n'
             text += '/xll[7/30/365] - Просмотр личной статистики за столько-то дней\n'
             text += '/gay - Просмотр текущего закреплённого модератора\n'
-            text += '\n'
-        if message.from_user.username.lower() == settings.superadmin_username.lower():
+            text += '\n Что делать если есть какие-то цифры и не рабочий @username:\n\t tg://<тот самый не рабочий username без @>?id=<те самые цифры>\n\t tg://Виолета?id=812345678\n'
+        if (message.from_user.username or "").lower() == settings.superadmin_username.lower():
             text += '/add_admin <username>(без собачки) - Добавить права админа пользователю\n'
             text += '\n'
         if message.from_user.username in list(MODER_USERNAMES.values()):
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
-
             text += '\n'
 
-        logger.info(f"{message.from_user.username} start set_chat_menu_button")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} start set_chat_menu_button")
         await app.set_chat_menu_button(
             chat_id=message.from_user.id,
             menu_button=MenuButtonCommands()
         )
 
-        logger.info(f"{message.from_user.username} start set_bot_commands")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} start set_bot_commands")
         await app.set_bot_commands(commands=commands, scope=BotCommandScopeChat(chat_id=message.from_user.id))
 
         text += hello_message
@@ -149,10 +148,10 @@ async def run_wizard():
             ]
         ]
 
-        logger.info(f"{message.from_user.username} start reply")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} start reply")
         await message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
 
-        logger.info(f"{message.from_user.username} try to add in 'users' table")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} try to add in 'users' table")
         user = await user_service.create_draft(message.from_user.id, message.from_user.username)
         await user_service.submit_user(user)
 
@@ -165,7 +164,7 @@ async def run_wizard():
 
     @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_add_moder(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used add_moderator")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used add_moderator")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:]).lower()
@@ -180,7 +179,7 @@ async def run_wizard():
 
     @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_add_admin(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used add_admin")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used add_admin")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
@@ -195,7 +194,7 @@ async def run_wizard():
 
     @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule) & member_rule & mpg_fabric(logger, session_store))
     async def cmd_del_moder(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used del_moderator")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used del_moderator")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
@@ -218,7 +217,7 @@ async def run_wizard():
 
     @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_del_admin(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used del_admin")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used del_admin")
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
@@ -241,7 +240,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("stat7") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used stat7")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used stat7")
         data = await form_service.get_forms_stats(period="7 days")
         text = "Общая статистика заявок за послдение 7 дней:\n"
         text += stat_text_gen(data)
@@ -249,7 +248,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("stat30") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used stat30")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used stat30")
         data = await form_service.get_forms_stats(period="29 days")
         text = "Общая статистика заявок за послдение 30 дней:\n"
         text += stat_text_gen(data)
@@ -257,7 +256,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("stat365") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used stat365")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used stat365")
         data = await form_service.get_forms_stats(period="364 days")
         text = "Общая статистика заявок за послдение 365 дней:\n"
         text += stat_text_gen(data)
@@ -265,7 +264,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("xxl7") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used xxl7")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used xxl7")
         data = await form_service.get_forms_stats(period="6 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 7 дней:\n"
         text += stat_text_gen(data)
@@ -273,7 +272,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("xxl30") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used xxl30")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used xxl30")
         data = await form_service.get_forms_stats(period="29 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 30 дней:\n"
         text += stat_text_gen(data)
@@ -281,7 +280,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("xxl365") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used xxl365")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used xxl365")
         data = await form_service.get_forms_stats(period="364 days", assigned_to=message.from_user.username.lower())
         text = "Личная статистика заявок за последние 365 дней:\n"
         text += stat_text_gen(data)
@@ -289,7 +288,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("setspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used setspam")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used setspam")
         await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, после /startspam <- тык")
 
     @app.on_message(filters.command("startspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
@@ -317,7 +316,7 @@ async def run_wizard():
 
     @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} used view")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used view")
         form = await form_service.get_form(None, "operator", assigned_to=MODER_USERNAMES.get(message.from_user.username.lower(), "Undefined"))
 
         if not form:
@@ -353,7 +352,7 @@ async def run_wizard():
 
     @app.on_message(filters.command('mymoder') & mpg_fabric(logger, session_store) & allowed_admin_rule & filters.private)
     async def opers(client: Client, message):
-        logger.info(f"{message.from_user.username} used mymoder")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used mymoder")
         await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
 
     @app.on_message(filters.command('gay') & mpg_fabric(logger, session_store) & allowed_admin_rule)
@@ -362,14 +361,14 @@ async def run_wizard():
 
     @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule & mpg_fabric(logger, session_store))
     async def catch_all(client: Client, message: Message):
-        logger.info(f"{message.from_user.username} not command, catch message")
+        logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} not command, catch message")
         # Any non-command message is considered as input to the current FSM
         await operator_form_conv.handle_message(client, message)
         await agent_form_conv.handle_message(client, message)
 
     @app.on_callback_query(member_rule & mpg_fabric(logger, session_store, False))
     async def on_callback(client: Client, callback: CallbackQuery):
-        logger.info(f"{callback.from_user.username} get calllback")
+        logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} get calllback")
         try:
             chat_id = callback.from_user.id
         except AttributeError:
@@ -388,13 +387,13 @@ async def run_wizard():
             return False
         next_pass = await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
         if next_pass or next_pass is None:
-            logger.info(f"{callback.from_user.username} operator_form_conv accept calllback")
-            logger.info(f"{callback.from_user.username} agent_form_conv get calllback")
+            logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} operator_form_conv accept calllback")
+            logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} agent_form_conv get calllback")
             await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
         else:
-            logger.warning(f"{callback.from_user.username} operator_form_conv NOT accept calllback")
+            logger.warning(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} operator_form_conv NOT accept calllback")
 
-        logger.info(f"{callback.from_user.username} callback_global_router get calllback")
+        logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} callback_global_router get calllback")
         await callback_global_router(client, callback, form_service, session_store)
         goat = await session_store.pop_other(key)
         if not goat:

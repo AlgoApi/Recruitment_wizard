@@ -25,7 +25,7 @@ class FormConversation:
 
     async def start(self, client: Client, callback: CallbackQuery):
         user = callback.from_user
-        logger.info(f"init form conversation {user.username}")
+        logger.info(f"init form conversation {user.username or user.id}  {user.first_name}")
         pages = list(self.form_def.pages())
 
         session = {
@@ -42,11 +42,11 @@ class FormConversation:
             for __ in _:
                 session["count_questions"] += 1
 
-        logger.info(f"{user.username} form conversation try get old form")
+        logger.info(f"{user.username or user.id} {user.first_name} form conversation try get old form")
         session_bd = await self.form_service.get_form(user_id=user.id, role=self.form_def.id, status=True)
         if session_bd:
             session["answers"] = session_bd.content
-        logger.info(f"{user.username} form conversation try get cached form")
+        logger.info(f"{user.username or user.id} {user.first_name} form conversation try get cached form")
         sessiiion_old = await self.session_store.get(user.id) or {}
 
         if sessiiion_old.get('menu_id', None):
@@ -56,10 +56,10 @@ class FormConversation:
                 pass
 
         if sessiiion_old and sessiiion_old.get("definition_id", "") != session["definition_id"]:
-            logger.info(f"{user.username} form conversation set_overwrite form")
+            logger.info(f"{user.username or user.id} {user.first_name} form conversation set_overwrite form")
             await self.session_store.set_overwrite(user.id, session)
         else:
-            logger.info(f"{user.username} form conversation set_initialize form")
+            logger.info(f"{user.username or user.id} {user.first_name} form conversation set_initialize form")
             await self.session_store.set_initialize(user.id, session)
 
         if self.form_def.video:
@@ -72,23 +72,23 @@ class FormConversation:
 
     async def handle_message(self, client: Client, message: Message):
         user = message.from_user
-        logger.info(f"{user.username} handle_message received message")
+        logger.info(f"{user.username or user.id} {user.first_name} handle_message received message")
         session = await self.session_store.get(user.id) or {}
         if session.get('definition_id') != self.form_def.id:
-            logger.info(f"{user.username} handle_message rejected message because {session.get('definition_id')} != {self.form_def.id}")
+            logger.info(f"{user.username or user.id} {user.first_name} handle_message rejected message because {session.get('definition_id')} != {self.form_def.id}")
             return
         if not session["run"]:
-            logger.info(f"{user.username} handle_message rejected message because form filling has not started")
+            logger.info(f"{user.username or user.id} {user.first_name} handle_message rejected message because form filling has not started")
             await message.reply('Нажмите Заполнить/Изменить чтобы начать.')
             return
         if not session:
-            logger.info(f"{user.username} handle_message rejected message because session not found")
+            logger.info(f"{user.username or user.id} {user.first_name} handle_message rejected message because session not found")
             await message.reply('Сессия не найдена. Наберите /start чтобы начать.')
             return
         page_idx = session.get('page', 0)
         fields = list(self.form_def.pages())
         if page_idx >= len(fields):
-            logger.info(f"{user.username} handle_message rejected message because page not found")
+            logger.info(f"{user.username or user.id} {user.first_name} handle_message rejected message because page not found")
             await message.reply('Страницы не найдены — начните заново. Наберите /start')
             return
 
@@ -116,29 +116,29 @@ class FormConversation:
                 if re_val:
                     val = int(re_val.group())
                 else:
-                    logger.info(f"{user.username} handle_message rejected message because NAN")
+                    logger.info(f"{user.username or user.id} {user.first_name} handle_message rejected message because NAN")
                     await message.reply(f'Так не пойдёт, введите число')
                     return
-            logger.info(f"{user.username} handle_message try validate message")
+            logger.info(f"{user.username or user.id} {user.first_name} handle_message try validate message")
             status, validator_message = self.validator.validate_answer(target, val)
             if not status:
-                logger.info(f"{user.username} handle_message rejected message because validation failed")
+                logger.info(f"{user.username or user.id} {user.first_name} handle_message rejected message because validation failed")
                 await message.reply(f'Так не пойдёт, {validator_message}')
                 return
 
         if target.required and not val:
-            logger.warning(f"{user.username} handle_message rejected message because {target.label} not filled")
+            logger.warning(f"{user.username or user.id} {user.first_name} handle_message rejected message because {target.label} not filled")
             await message.reply(f'Поле "{target.label}" обязательно.')
             return
 
-        logger.warning(f"{user.username} handle_message accepted message")
+        logger.warning(f"{user.username or user.id} {user.first_name} handle_message accepted message")
         session['answers'][target.key] = val
         session['question'] += 1
         await self.session_store.set_overwrite(user.id, session)
 
         all_answered = all(f.key in session['answers'] for f in page_fields)
         if all_answered:
-            logger.warning(f"{user.username} handle_message form pages")
+            logger.warning(f"{user.username or user.id} {user.first_name} handle_message form pages")
             await self._send_page_controls(client, message.chat.id, user.id, session)
         else:
             new_needed_vl = page_fields[session['question']].label

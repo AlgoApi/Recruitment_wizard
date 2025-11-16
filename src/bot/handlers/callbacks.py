@@ -74,11 +74,11 @@ async def safe_send_to_user(client:Client, user_identifier, text_vv, reply_marku
             return False
 
 async def valid_start_role(client:Client, form_service: FormService, callback: CallbackQuery, session:dict, sesssion_store:RedisSessionStore, user_id, role, data):
-    logger.info(f"{callback.from_user.username} validation form start command")
+    logger.info(f"{callback.from_user.username or callback.from_user.id} validation form start command")
     parts = data.split(':')
     command = parts[1]
     if await form_service.is_submited(user_id, role):
-        logger.info(f"{callback.from_user.username} waiting")
+        logger.info(f"{callback.from_user.username or callback.from_user.id} waiting")
         new_message = await callback.message.reply_text(wait_text.replace("{ROLE_NOT_ASSIGNED}", translate_role(role)))
         if session.get('menu_id'):
             try:
@@ -91,7 +91,7 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
         return ""
     expiry = await form_service.is_cooldown(user_id, role)
     if expiry > 0:
-        logger.info(f"{callback.from_user.username} cooldown")
+        logger.info(f"{callback.from_user.username or callback.from_user.id} cooldown")
         new_message = await callback.message.reply_text(cooldown_text + f"{expiry} минут")
         if session.get('menu_id'):
             try:
@@ -110,7 +110,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
     if data.startswith("info"):
         return None
     user = callback.from_user
-    logger.info(f"{user.username} callback router received callback:{data}")
+    logger.info(f"{user.username or user.id} {user.first_name} callback router received callback:{data}")
     session = await sesssion_store.get(user.id) or {}
     session_role = session.get("definition_id", None)
     parts = data.split(':')
@@ -121,7 +121,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         command = await valid_start_role(client, form_service, callback, session, sesssion_store, user.id, "operator",
                                          data)
         if command == "start":
-            logger.info(f"{user.username} callback router accept callback - start operator")
+            logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - start operator")
             await form_conv.start(client, callback)
 
         await safe_answer(callback)
@@ -129,7 +129,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
     elif data.startswith('agent:') and form_conv.form_def.id == "agent":
         command = await valid_start_role(client, form_service, callback, session, sesssion_store, user.id, "agent", data)
         if command == "start":
-            logger.info(f"{user.username} callback router accept callback - start agent")
+            logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - start agent")
             await form_conv.start(client, callback)
 
         await safe_answer(callback)
@@ -137,11 +137,11 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
 
     else:
         if data.startswith('agent:') or data.startswith('operator:'):
-            logger.debug(f"{user.username} form_not_match TRUE")
+            logger.debug(f"{user.username or user.id} {user.first_name} form_not_match TRUE")
             form_not_match = True
 
     if data == "cmd_start":
-        logger.info(f"{user.username} callback router accept callback - cmd_start")
+        logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - cmd_start")
         if session.get('menu_id', None):
             try:
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
@@ -166,7 +166,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         await safe_answer(callback)
         return False
     if data == "cmd_start_exec":
-        logger.info(f"{user.username} callback router accept callback - cmd_start_exec")
+        logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - cmd_start_exec")
         if session.get('menu_id', None):
             try:
                 await client.delete_messages(callback.message.chat.id, session['menu_id'])
@@ -177,7 +177,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         return False
 
     elif data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
-        logger.info(f"{user.username} callback router accept callback - send_questions")
+        logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - send_questions")
         await form_conv._send_page(client, callback.message.chat.id, user.id)
         if session['menu_id']:
             try:
@@ -189,21 +189,21 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
 
 
     elif session_role and session_role != form_conv.form_def.id:
-        logger.info(f"{user.username} callback router reject callback - {session_role} != {form_conv.form_def.id}")
+        logger.info(f"{user.username or user.id} {user.first_name} callback router reject callback - {session_role} != {form_conv.form_def.id}")
 
         await safe_answer(callback)
         return None
 
     elif data.startswith('trouble:'):
-        logger.info(f"{user.username} callback router accept callback - trouble")
+        logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - trouble")
         _, raw_id = data.split(":")
         form_id = int(raw_id)
 
-        logger.debug(f"{user.username} callback router trouble try get form")
+        logger.debug(f"{user.username or user.id} {user.first_name} callback router trouble try get form")
         form = await form_service.get_form(form_id=form_id, status=True)
 
         if form.role == form_conv.form_def.id:
-            logger.info(f"{user.username} callback router trouble get form {form.username}")
+            logger.info(f"{user.username or user.id} {user.first_name} callback router trouble get form {form.username or form.user_id}")
             header = (
                 "**❗НЕ МОЖЕТ НАПИСАТЬ❗**\n"
                 f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"}) ({form.assigned_to})\n"
@@ -215,10 +215,10 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
 
             if form.role == "operator":
-                logger.info(f"{user.username} callback router trouble send for operator")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router trouble send for operator")
                 await client.send_message(chat_id=form.assigned_to, text=text)
             elif form.role == "agent":
-                logger.info(f"{user.username} callback router trouble send for agent")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router trouble send for agent")
                 try:
                     await send_text_to_topic(client, chat_id=settings.group_id, topic_init_msg_id=settings.agent_group_id, text=text)
                 except FloodWait as e:
@@ -237,7 +237,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             page = int(parts[2])
             form_name = parts[3]
             if form_name == form_conv.form_def.id:
-                logger.info(f"{user.username} callback router accept callback - start fill page {page} : {form_name}")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - start fill page {page} : {form_name}")
                 session["run"] = True
                 pages = list(form_conv.form_def.pages())
                 session["question"] = 0
@@ -255,7 +255,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                         pass
 
                 if len(pages[page]) <= session["question"]:
-                    logger.warning(f"{user.username} callback router start fill page - clear all answers")
+                    logger.warning(f"{user.username or user.id} {user.first_name} callback router start fill page - clear all answers")
                     # await callback.message.reply("На этой странице всё, переходите к следующей")
                     for question in pages[page]:
                         all_answeres = list(session["answers"].keys())
@@ -268,16 +268,16 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                 session['menu_id'] = new_message.id
                 await sesssion_store.set_overwrite(user.id, session)
             else :
-                logger.info(f"{user.username} callback router reject callback - fill page, because {form_name} != {form_conv.form_def.id}")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router reject callback - fill page, because {form_name} != {form_conv.form_def.id}")
             await safe_answer(callback)
             return None
         elif data.startswith('nav:'):
             action = parts[1]
             form_name = parts[2]
             if form_name == form_conv.form_def.id:
-                logger.info(f"{user.username} callback router accept nav {action} {form_name}")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router accept nav {action} {form_name}")
                 if action == 'next':
-                    logger.info(f"{user.username} callback router nav action next")
+                    logger.info(f"{user.username or user.id} {user.first_name} callback router nav action next")
                     session['page'] = session.get('page', 0) + 1
                     pages = list(form_conv.form_def.pages())
                     session["question"] = 0
@@ -287,7 +287,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                             if question.key == key:
                                 session["question"] += 1
                 else:
-                    logger.info(f"{user.username} callback router nav action prev")
+                    logger.info(f"{user.username or user.id} {user.first_name} callback router nav action prev")
                     if (session.get('page', 0) - 1) < 0:
                         if session['menu_id']:
                             try:
@@ -305,18 +305,18 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                         for key in all_answeres:
                             if question.key == key:
                                 session["question"] += 1
-                logger.debug(f"{user.username} callback router nav, now session['run'] = False")
+                logger.debug(f"{user.username or user.id} {user.first_name} callback router nav, now session['run'] = False")
                 session["run"] = False
                 await sesssion_store.set_overwrite(user.id, session)
                 await form_conv._send_page(client, callback.message.chat.id, user.id)
             else:
-                logger.info(f"{user.username} callback router reject callback - nav, because {form_name} != {form_conv.form_def.id}")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router reject callback - nav, because {form_name} != {form_conv.form_def.id}")
 
             await callback.answer()
             return None
         elif data == 'submit:confirm':
-            logger.info(f"{user.username} callback router accept submit:confirm")
-            form = await form_service.create_draft(user.id, user.username, session.get('definition_id', "UNDEFINED"), session.get('answers', {}))
+            logger.info(f"{user.username or user.id} {user.first_name} callback router accept submit:confirm")
+            form = await form_service.create_draft(user.id, (user.username or user.first_name), session.get('definition_id', "UNDEFINED"), session.get('answers', {}))
             await form_service.submit_form(form)
             session = await sesssion_store.pop(user.id)
             if session['menu_id']:
@@ -331,11 +331,11 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             await sesssion_store.set_overwrite(user.id, session)
             #await cmd_start(client, callback.message)
             if session.get('definition_id', "UNDEFINED") == 'agent':
-                logger.info(f"{user.username} callback router submit:confirm interpreted agent")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted agent")
                 header = (
                     f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"}) ({form.assigned_to})\n"
                     f"🧑‍💼 Роль: {form.role}\n"
-                    f"📌 От: @{form.username} (id: {form.user_id})\n"
+                    f"📌 От: @{form.username or user.first_name} (id: {form.user_id})\n"
                     f"🕒 Создано: {form.created_at}\n\n"
                 )
                 content_text = format_content(form.content or {}, form_conv=form_conv)
@@ -360,7 +360,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                 except Exception as e:
                     logger.error("Ошибка при отправке:", e)
             elif session.get('definition_id', "UNDEFINED") == 'operator':
-                logger.info(f"{user.username} callback router submit:confirm interpreted operator")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted operator")
                 target=""
                 count = await sesssion_store.pop_other(form.assigned_to) or 0
                 await sesssion_store.set_other(form.assigned_to, int(count)+1, xx=True)
@@ -372,7 +372,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             return None
         else:
             if not form_not_match:
-                logger.info(f"{user.username} callback router reject callback form_not_match")
+                logger.info(f"{user.username or user.id} {user.first_name} callback router reject callback form_not_match")
                 await callback.message.reply("Нажми /start <-")
                 await safe_answer(callback)
                 return None
@@ -389,10 +389,10 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
 async def callback_global_router(client: Client, callback: CallbackQuery, form_service: FormService, sesssion_store: RedisSessionStore):
     data_g = callback.data or ''
     user = callback.from_user
-    logger.info(f"{user.username} global callback router received {data_g}")
+    logger.info(f"{user.username or user.id} {user.first_name} global callback router received {data_g}")
     if data_g.startswith('info:'):
         _, action = data_g.split(':')
-        logger.info(f"{user.username} global callback router accept info:")
+        logger.info(f"{user.username or user.id} {user.first_name} global callback router accept info:")
         session = await sesssion_store.get(user.id) or {}
 
         if session.get('menu_id', None):
@@ -404,30 +404,30 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         kb = [[InlineKeyboardButton("назад", callback_data="cmd_start")]]
 
         if action == "info":
-            logger.info(f"{user.username} global callback router info: interpreted info")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted info")
             kb.append([InlineKeyboardButton("Оставить обращение", callback_data="info:request")])
 
             new_message = await callback.message.reply(base_info, reply_markup=InlineKeyboardMarkup(kb))
         elif action == "request":
-            logger.info(f"{user.username} global callback router info: interpreted request")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted request")
             kb.append([InlineKeyboardButton("Партнёрство", callback_data="info:partner"),
               InlineKeyboardButton("Обращение", callback_data="info:message")])
             kb.append([InlineKeyboardButton("Помощь", callback_data="info:help")])
             new_message = await callback.message.reply(request_info, reply_markup=InlineKeyboardMarkup(kb))
         elif action == "partner":
-            logger.info(f"{user.username} global callback router info: interpreted partner")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted partner")
             new_message = await callback.message.reply(partner_info, reply_markup=InlineKeyboardMarkup(kb))
-            await send_text_to_topic(client, settings.group_id, settings.partner_group_id, f"@{user.username} Заявляет о желании в партнёрстве, напишите в лс")
+            await send_text_to_topic(client, settings.group_id, settings.partner_group_id, f"{user.first_name} @{user.username or user.id} Заявляет о желании в партнёрстве, напишите в лс")
         elif action == "message":
-            logger.info(f"{user.username} global callback router info: interpreted message")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted message")
             new_message = await callback.message.reply(message_info, reply_markup=InlineKeyboardMarkup(kb))
             await send_text_to_topic(client, settings.group_id, settings.message_group_id,
-                                      f"@{user.username} Хочет передать обращение, напишите в лс")
+                                      f"{user.first_name} @{user.username or user.id} Хочет передать обращение, напишите в лс")
         else: # always help!
-            logger.info(f"{user.username} global callback router info: interpreted help")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted help")
             new_message = await callback.message.reply(help_info, reply_markup=InlineKeyboardMarkup(kb))
             await send_text_to_topic(client, settings.group_id, settings.help_group_id,
-                                      f"@{user.username} Необходима ПОМОЩЬ, напишите в лс")
+                                      f"{user.first_name} @{user.username} Необходима ПОМОЩЬ, напишите в лс")
         if not session:
             await sesssion_store.set_initialize(user.id, session)
         session['menu_id'] = new_message.id
@@ -440,11 +440,11 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             _, raw_id, reason = data_g.split(":")
             form_id = int(raw_id)
         except Exception:
-            logger.error(f"{user.username} global callback router invalid data")
+            logger.error(f"{user.username or user.id} {user.first_name} global callback router invalid data")
             await callback.answer("Неправильные данные", show_alert=True)
             return
 
-        logger.info(f"{user.username} global callback router accept deny_reason")
+        logger.info(f"{user.username or user.id} {user.first_name} global callback router accept deny_reason")
 
         form = await form_service.get_form(form_id=form_id)
 
@@ -477,7 +477,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 give_a_new_rec = "agent"
 
         text_to_user = deny_text
-        logger.debug(f"{user.username} global callback router deny_reason {form.role} - {deny_key} = {reason}, give_a_new_rec {give_a_new_rec}")
+        logger.debug(f"{user.username or user.id} {user.first_name} global callback router deny_reason {form.role} - {deny_key} = {reason}, give_a_new_rec {give_a_new_rec}")
         kb = InlineKeyboardMarkup([[InlineKeyboardButton("Интересно!", callback_data=f"{give_a_new_rec}:start")]])
         await safe_send_to_user(client, user_id, text_to_user, reply_markup_v=kb)
 
@@ -501,18 +501,18 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             _, raw_id, action = data_g.split(":")
             form_id = int(raw_id)
         except Exception:
-            logger.info(f"{user.username} global callback router reject form: invalid data")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: invalid data")
             await callback.answer("Неправильные данные", show_alert=True)
             return
 
         form = await form_service.get_form(form_id=form_id)
         if not form:
-            logger.info(f"{user.username} global callback router reject form: form not found")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: form not found")
             await callback.answer("Заявка не найдена или уже обработана.", show_alert=True)
             return
 
         if form.status is not None:
-            logger.info(f"{user.username} global callback router reject form: {form.status} is not None")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: {form.status} is not None")
             await callback.answer("Эта заявка уже обработана.", show_alert=True)
             try:
                 await callback.message.edit_reply_markup(None)
@@ -520,7 +520,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 pass
             return
 
-        logger.info(f"{user.username} global callback router accept form:")
+        logger.info(f"{user.username or user.id} {user.first_name} global callback router accept form:")
 
         new_status = True if action == "accept" else False
 
@@ -546,7 +546,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         assigned = form.assigned_to or ""
 
         if role == "operator":
-            logger.info(f"{user.username} global callback router form: interpreted role as operator")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as operator")
             count = await sesssion_store.pop_other(form.assigned_to) or 0
             await sesssion_store.set_other(form.assigned_to, int(count) - 1, xx=True)
             if not new_status:  # Отклонено
@@ -561,7 +561,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 await safe_send_to_user(client, user_id, operator_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", manager_ref), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
 
         elif role == "agent":
-            logger.info(f"{user.username} global callback router form: interpreted role as agent")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as agent")
             if not new_status:  # Отклонено
                 #
                 kb = [[]]
@@ -605,7 +605,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                                         "Ваша заявка одобрена — менеджер получил анкету и свяжется с вами.")
             '''
         else:
-            logger.info(f"{user.username} global callback router reject: 404")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject: 404")
             await safe_send_to_user(client, user_id, f"Статус вашей заявки: {status_label}")
     return
 
