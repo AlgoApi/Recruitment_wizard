@@ -427,7 +427,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted help")
             new_message = await callback.message.reply(help_info, reply_markup=InlineKeyboardMarkup(kb))
             await send_text_to_topic(client, settings.group_id, settings.help_group_id,
-                                      f"{user.first_name} @{user.username} Необходима ПОМОЩЬ, напишите в лс")
+                                      f"{user.first_name} @{user.username or user.id} Необходима ПОМОЩЬ, напишите в лс")
         if not session:
             await sesssion_store.set_initialize(user.id, session)
         session['menu_id'] = new_message.id
