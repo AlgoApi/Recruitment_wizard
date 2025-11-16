@@ -20,7 +20,7 @@ from .services.form_service import FormService
 from .services.user_service import UserService
 from .handlers.callbacks import callback_router, callback_global_router
 from .forms.definition import operator_form, agent_form
-from .security.security_rules import allowed_admin_rule, ADMIN_USERNAMES
+from .security.security_rules import allowed_admin_rule, ADMIN_USERNAMES, cheker_channel_member
 from .security.security_rules import allowed_moder_rule, MODER_USERNAMES
 from .security.security_rules import allowed_superadmin_rule
 from .security.security_rules import member_rule
@@ -108,7 +108,7 @@ async def run_wizard():
     @app.on_message(filters.command(['start', 'help']) & filters.private & mpg_fabric(logger, session_store))
     async def cmd_start(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used start")
-        await member_rule(None, client, message)
+        await cheker_channel_member(client, message, settings.channel_id, True)
         text = ""
         commands = [
             BotCommand(command="start", description="Начать")

@@ -34,42 +34,45 @@ def superadmin_rule_fabric():
         bool(message.from_user and (message.from_user.username or "").lower() == settings.superadmin_username.lower())
     ))
 
+async def cheker_channel_member(client, message, channel_id: int, require_username_match: bool = False):
+    user = message.from_user
+    if not user:
+        return True
+
+    try:
+        member = await client.get_chat_member(channel_id, user.id)
+        if not require_username_match:
+            return True
+
+        member_username = str(member.user.username or member.user.id).lower()
+        msg_username = str(user.username or user.id).lower()
+
+        if member_username == msg_username:
+            return True
+        else:
+            await send_subscribe_btn(client, user.id)
+            return False
+
+    except UserNotParticipant:
+        logger.info(f"{user.username or user.id} {user.first_name} not subscribed")
+        await send_subscribe_btn(client, user.id)
+        return False
+    except Forbidden as e:
+        logger.error(
+            f"{user.username or user.id} {user.first_name} [in_channel_member_filter] bot has been not accessible for channel: {e}")
+        await send_subscribe_btn(client, user.id)
+        return False
+    except FloodWait as e:
+        logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] FloodWait {e.value} sec")
+        await send_subscribe_btn(client, user.id)
+        return False
+    except Exception as e:
+        logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] unexpected error: {e}")
+        return True
+
 def in_channel_member_fabric(channel_id: int, require_username_match: bool = False) -> filters.Filter:
     async def predicate(_, client, message) -> bool:
-        user = message.from_user
-        if not user:
-            return True
-
-        try:
-            member = await client.get_chat_member(channel_id, user.id)
-            if not require_username_match:
-                return True
-
-            member_username = str(member.user.username or member.user.id).lower()
-            msg_username = str(user.username or user.id).lower()
-
-            if member_username == msg_username:
-                return True
-            else:
-                await send_subscribe_btn(client, user.id)
-                return False
-
-        except UserNotParticipant:
-            logger.info(f"{user.username or user.id} {user.first_name} not subscribed")
-            await send_subscribe_btn(client, user.id)
-            return False
-        except Forbidden as e:
-            logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] bot has been not accessible for channel: {e}")
-            await send_subscribe_btn(client, user.id)
-            return False
-        except FloodWait as e:
-            logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] FloodWait {e.value} sec")
-            await send_subscribe_btn(client, user.id)
-            return False
-        except Exception as e:
-            logger.error(f"{user.username or user.id} {user.first_name} [in_channel_member_filter] unexpected error: {e}")
-            return True
-
+        return await cheker_channel_member(client, message, channel_id, require_username_match)
     return filters.create(predicate)
 
 def multiple_poller_guardian_fabric(log, session_store, need_save:bool=True):
