@@ -47,7 +47,7 @@ class UserService:
                     await session.commit()
                     return user
                 except IntegrityError:
-                    session.rollback()
+                    await session.rollback()
                     return None
 
 

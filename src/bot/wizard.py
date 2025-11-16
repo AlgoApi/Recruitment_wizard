@@ -292,36 +292,33 @@ async def run_wizard():
     @app.on_message(filters.command("setspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used setspam")
-        await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, после отправки сообщения - /startspam <- тык")
+        await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, после того как будете уверены в отправки этого сообщения - /startspam <- тык или если хотите отменить не пишите /startspam или снова напишите /setspam для редактирования")
 
     @app.on_message(filters.command("startspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         accepted_rassilok = 0
         rejected_rassilok = 0
         copy_message_id = message.id - 1
-        inaccuracy = 0
         await message.reply("Рассылка началась")
 
         msg = await client.get_messages(message.chat.id, copy_message_id)
-        while msg and msg.from_user.is_bot and inaccuracy < 4 and copy_message_id > 0:
+        if msg and msg.from_user.is_bot:
             copy_message_id -= 1
-            inaccuracy += 1
             msg = await client.get_messages(message.chat.id, copy_message_id)
-        if inaccuracy < 4:
-            users = await user_service.get_user(limit=False)
-            for user_entry in users:
-                try:
-                    msg = await client.copy_message(chat_id=user_entry.user_id, message_id=copy_message_id,
-                                                    from_chat_id=message.chat.id)
-                    if msg is not None:
-                        accepted_rassilok += 1
-                    else:
-                        rejected_rassilok += 1
-                except Exception:
-                    logger.warning(f"Failed to send rassilka to {user_entry.user_id}")
+        if not msg or msg.from_user.is_bot:
+            await message.reply(f"Рассылка окончена.\nпроверьте наличие Вашего сообщения")
+        users = await user_service.get_user(limit=False)
+        for user_entry in users:
+            try:
+                msg = await client.copy_message(chat_id=user_entry.user_id, message_id=copy_message_id,
+                                                from_chat_id=message.chat.id)
+                if msg is not None:
+                    accepted_rassilok += 1
+                else:
                     rejected_rassilok += 1
-        else:
-            await message.reply(f"Рассылка окончена.\nПроверьте наличие ВАШЕГО сообщения")
+            except Exception:
+                logger.warning(f"Failed to send rassilka to {user_entry.user_id}")
+                rejected_rassilok += 1
         await message.reply(f"Рассылка окончена.\nотправлено: {accepted_rassilok}, отклонено: {rejected_rassilok}")
 
 
