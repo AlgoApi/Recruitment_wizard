@@ -152,7 +152,7 @@ async def run_wizard():
         await message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
 
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} try to add in 'users' table")
-        user = await user_service.create_draft(message.from_user.id, message.from_user.username)
+        user = await user_service.create_draft(message.from_user.id, (message.from_user.username or message.from_user.first_name))
         await user_service.submit_user(user)
 
     '''
