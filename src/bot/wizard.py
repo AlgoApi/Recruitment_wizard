@@ -305,8 +305,9 @@ async def run_wizard():
         if msg and msg.from_user.is_bot:
             copy_message_id -= 1
             msg = await client.get_messages(message.chat.id, copy_message_id)
-        if not msg or msg.from_user.is_bot:
+        if not msg or msg.from_user.is_bot or msg.text == "/setspam" or msg.text == "/setspam ":
             await message.reply(f"Рассылка окончена.\nпроверьте наличие Вашего сообщения")
+            return
         users = await user_service.get_user(limit=False)
         for user_entry in users:
             try:
