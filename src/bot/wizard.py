@@ -122,7 +122,8 @@ async def run_wizard():
             text += '/stat[7/30/365] - Просмотр общей статистики за столько-то дней\n'
             text += '/xll[7/30/365] - Просмотр личной статистики за столько-то дней\n'
             text += '/gay - Просмотр текущего закреплённого модератора\n'
-            text += '\n Что делать если есть какие-то цифры и не рабочий @username:\n\t tg://<тот самый не рабочий username без @>?id=<те самые цифры>\n\t tg://Виолета?id=812345678\n'
+            text += '/setspam - начать рассылку всем\n'
+            text += '\n Что делать если есть какие-то цифры и не рабочий @username:\n      tg://<тот самый не рабочий username без @>?id=<те самые цифры>\n      пример: tg://Виолета?id=812345678\n'
         if (message.from_user.username or "").lower() == settings.superadmin_username.lower():
             text += '/add_admin <username>(без собачки) - Добавить права админа пользователю\n'
             text += '\n'
@@ -291,28 +292,36 @@ async def run_wizard():
     @app.on_message(filters.command("setspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used setspam")
-        await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, после /startspam <- тык")
+        await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, после отправки сообщения - /startspam <- тык")
 
     @app.on_message(filters.command("startspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         accepted_rassilok = 0
         rejected_rassilok = 0
         copy_message_id = message.id - 1
+        inaccuracy = 0
         await message.reply("Рассылка началась")
 
-        users = await user_service.get_user(limit=False)
-
-        for user_entry in users:
-            try:
-                msg = await client.copy_message(chat_id=user_entry.user_id, message_id=copy_message_id,
-                                                from_chat_id=message.chat.id)
-                if msg is not None:
-                    accepted_rassilok += 1
-                else:
+        msg = await client.get_messages(message.chat.id, copy_message_id)
+        while msg and msg.from_user.is_bot and inaccuracy < 4 and copy_message_id > 0:
+            copy_message_id -= 1
+            inaccuracy += 1
+            msg = await client.get_messages(message.chat.id, copy_message_id)
+        if inaccuracy < 4:
+            users = await user_service.get_user(limit=False)
+            for user_entry in users:
+                try:
+                    msg = await client.copy_message(chat_id=user_entry.user_id, message_id=copy_message_id,
+                                                    from_chat_id=message.chat.id)
+                    if msg is not None:
+                        accepted_rassilok += 1
+                    else:
+                        rejected_rassilok += 1
+                except Exception:
+                    logger.warning(f"Failed to send rassilka to {user_entry.user_id}")
                     rejected_rassilok += 1
-            except Exception:
-                logger.warning(f"Failed to send rassilka to {user_entry.user_id}")
-                rejected_rassilok += 1
+        else:
+            await message.reply(f"Рассылка окончена.\nПроверьте наличие ВАШЕГО сообщения")
         await message.reply(f"Рассылка окончена.\nотправлено: {accepted_rassilok}, отклонено: {rejected_rassilok}")
 
 
