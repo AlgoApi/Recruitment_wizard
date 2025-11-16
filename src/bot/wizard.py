@@ -105,9 +105,10 @@ async def run_wizard():
     logger.info("init agent_form_conv")
     agent_form_conv = FormConversation(session_store, form_service, agent_form)
 
-    @app.on_message(filters.command(['start', 'help']) & filters.private & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.command(['start', 'help']) & filters.private & mpg_fabric(logger, session_store))
     async def cmd_start(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used start")
+        await member_rule(None, client, message)
         text = ""
         commands = [
             BotCommand(command="start", description="Начать")
@@ -155,6 +156,7 @@ async def run_wizard():
         user = await user_service.create_draft(message.from_user.id, (message.from_user.username or message.from_user.first_name))
         await user_service.submit_user(user)
 
+
     '''
     DEPRECATED
     @app.on_message(filters.command(['fill']) & filters.private)
@@ -162,7 +164,7 @@ async def run_wizard():
         await operator_form_conv.start(client, message)
     '''
 
-    @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.command(['add_moderator']) & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_add_moder(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used add_moderator")
         args = message.command
@@ -177,7 +179,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.command(['add_admin']) & filters.private & allowed_superadmin_rule & mpg_fabric(logger, session_store))
     async def cmd_add_admin(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used add_admin")
         args = message.command
@@ -192,7 +194,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule) & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.command(['del_moderator']) & filters.private & (allowed_moder_rule | allowed_admin_rule) & mpg_fabric(logger, session_store))
     async def cmd_del_moder(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used del_moderator")
         args = message.command
@@ -215,7 +217,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.command(['del_admin']) & filters.private & allowed_superadmin_rule & mpg_fabric(logger, session_store))
     async def cmd_del_admin(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used del_admin")
         args = message.command
@@ -238,7 +240,7 @@ async def run_wizard():
         else:
             await message.reply("В следующий раз напиши username после команды")
 
-    @app.on_message(filters.command("stat7") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.command("stat7") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_stat(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used stat7")
         data = await form_service.get_forms_stats(period="7 days")
@@ -314,7 +316,7 @@ async def run_wizard():
         await message.reply(f"Рассылка окончена.\nотправлено: {accepted_rassilok}, отклонено: {rejected_rassilok}")
 
 
-    @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used view")
         form = await form_service.get_form(None, "operator", assigned_to=MODER_USERNAMES.get(message.from_user.username.lower(), "Undefined"))
@@ -359,14 +361,14 @@ async def run_wizard():
     async def pashalko(client: Client, message):
         await client.send_photo(message.from_user.id, caption=f"{MODER_USERNAMES.get(message.from_user.username)}", photo="AgACAgIAAxkBAAIDM2kM9OrTy8y7zLWKDMEiVt2B5rbQAAJxD2sbOlNoSFGjptx13Ps1AAgBAAMCAAN5AAceBA")
 
-    @app.on_message(filters.private & ~filters.command(ALL_CMDS) & member_rule & mpg_fabric(logger, session_store))
+    @app.on_message(filters.private & ~filters.command(ALL_CMDS) & mpg_fabric(logger, session_store))
     async def catch_all(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} not command, catch message")
         # Any non-command message is considered as input to the current FSM
         await operator_form_conv.handle_message(client, message)
         await agent_form_conv.handle_message(client, message)
 
-    @app.on_callback_query(member_rule & mpg_fabric(logger, session_store, False))
+    @app.on_callback_query(mpg_fabric(logger, session_store, False))
     async def on_callback(client: Client, callback: CallbackQuery):
         logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} get calllback")
         try:
