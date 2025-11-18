@@ -1,12 +1,11 @@
 import logging
 from typing import Optional
-import asyncio
 
 from sqlalchemy import select
 from sqlalchemy.engine import ScalarResult
 from sqlalchemy.exc import IntegrityError
 
-from ..models.db import AsyncSessionLocal, DBManager
+from ..models.db import DBManager
 from ..models.form import UserModel
 
 logger = logging.getLogger(__name__)
@@ -18,11 +17,11 @@ class UserService:
 
     async def create_draft(self, user_id: int, username: str):
         # async with AsyncSessionLocal() as session:
-        logger.info(f"create_draft {user_id}")
+        logger.info(f"create_draft user {user_id}")
 
         user = UserModel(user_id=user_id, username=username)
 
-        logger.debug(f"Draft {user_id} created {user.id}")
+        logger.debug(f"Draft user {user_id} created {user.id}")
         return user
 
     async def submit_user(self, user: UserModel):

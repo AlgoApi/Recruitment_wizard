@@ -1,13 +1,14 @@
-from sqlalchemy.orm import declarative_base, Session
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Callable, Coroutine, Optional, TypeVar, AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from typing import Any, Callable, Coroutine, TypeVar, AsyncGenerator
+
 from sqlalchemy.exc import OperationalError, DBAPIError
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import declarative_base, Session
+from sqlalchemy.orm import sessionmaker
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, RetryError
-import logging
+
 from .. import config
 
 Base = declarative_base()
@@ -37,7 +38,6 @@ class DBManager:
 
     async def init_db(self):
         logger.info("init db")
-        from ..models import form
 
         async with self._engine.begin() as conn:
             # Import models before create_all

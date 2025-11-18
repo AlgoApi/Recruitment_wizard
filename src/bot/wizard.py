@@ -1,7 +1,8 @@
+from .services.staff_service import StaffService
+
 print("Welcome to AlgoApi Wizard")
 import asyncio
 import logging
-import sqlite3
 from pathlib import Path
 
 import uvloop
@@ -12,7 +13,7 @@ from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineK
 from .models.db import AsyncSessionLocal
 from .utils.busines_text import hello_message
 from .utils.utils import format_content, stat_text_gen
-from .config import settings, MAX_TRY_RECONNECT
+from .config import settings
 from .logging_config import setup_logging
 from .storage.session_store import create_session_store
 from .handlers.form_handler import FormConversation
@@ -23,7 +24,6 @@ from .forms.definition import operator_form, agent_form
 from .security.security_rules import allowed_admin_rule, ADMIN_USERNAMES, cheker_channel_member
 from .security.security_rules import allowed_moder_rule, MODER_USERNAMES
 from .security.security_rules import allowed_superadmin_rule
-from .security.security_rules import member_rule
 from .security.security_rules import multiple_poller_guardian_fabric as mpg_fabric
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -75,9 +75,22 @@ async def run_wizard():
 
     logger.info("session_store")
     session_store = await create_session_store()
+    logger.info("staff_service")
+    staff_service = StaffService(AsyncSessionLocal)
     logger.info("form_service")
-    form_service = FormService(AsyncSessionLocal)
+    form_service = FormService(AsyncSessionLocal, staff_service)
+    logger.info("user_service")
     user_service = UserService(AsyncSessionLocal)
+
+    logger.info("get moder db")
+    moders_rows = await staff_service.get_staff(role="moderator", limit=False)
+    MODER_USERNAMES.update({row.assigned_to: row.username for row in moders_rows})
+    logger.info(MODER_USERNAMES)
+    del moders_rows
+    admins_rows = await staff_service.get_staff(role="admin", limit=False)
+    ADMIN_USERNAMES.update({row.assigned_to: row.username for row in admins_rows})
+    logger.info(ADMIN_USERNAMES)
+    del admins_rows
 
     zigma = ""
     attempts = 0
@@ -86,8 +99,9 @@ async def run_wizard():
         logger.info(f"session found '{zigma}'")
         if len(zigma) > 1:
             logger.error(f"session found '{zigma}' -> length > 1")
-        if not Path(f"Recruitment-SO{zigma}D.session-journal").exists():
+        if not Path(f"Recruitment-SO{zigma}D.lock").exists():
             logger.info(f"attempt use session:{zigma}")
+            open(f"Recruitment-SO{zigma}D.lock", "a").close()
             app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
                         api_hash=settings.api_hash)
             break
@@ -172,6 +186,9 @@ async def run_wizard():
         if len(args) > 1:
             text_after_command = " ".join(args[1:]).lower()
             getter_setter_admitted_users_wizard(logger, "moders.txt", write=True, data=text_after_command,username=message.from_user.username)
+            await staff_service.update_form(find_role="moderator", find_assigned_to=message.from_user.username.lower(), actual=False)
+            staff = await staff_service.create_draft(text_after_command, "moderator", message.from_user.username.lower(), True)
+            await staff_service.submit_staff(staff)
             MODER_USERNAMES.update({message.from_user.username.lower():text_after_command.lower()})
             text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
             for nick in list(MODER_USERNAMES.values()):
@@ -188,6 +205,9 @@ async def run_wizard():
             text_after_command = " ".join(args[1:])
             getter_setter_admitted_users_wizard(logger, "admins.txt", write=True, data=text_after_command, username=f"{message.from_user.username}{len(ADMIN_USERNAMES)}")
             ADMIN_USERNAMES.update({message.from_user.username:text_after_command})
+            await staff_service.update_form(find_role="admin", find_assigned_to="alogapi", actual=False)
+            staff = await staff_service.create_draft(text_after_command, "admin", "alogapi", True)
+            await staff_service.submit_staff(staff)
             text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
             for nick in list(ADMIN_USERNAMES.values()):
                 text += nick[:3] + "\n"
@@ -207,6 +227,7 @@ async def run_wizard():
                         if message.from_user.username == id_name:
                             del MODER_USERNAMES[f"{id_name}"]
                     text = f"Модераторов теперь: {len(MODER_USERNAMES)}\n"
+                    await staff_service.update_form(text_after_command, "moderator", message.from_user.username.lower(), actual=False)
                     for nick in list(MODER_USERNAMES.values()):
                         text += nick[:3] + "...\n"
                     await message.reply(text)
@@ -229,6 +250,7 @@ async def run_wizard():
                     for id_name, nick in list(ADMIN_USERNAMES.items()):
                         if text_after_command == nick:
                             del ADMIN_USERNAMES[f"{id_name}"]
+                    await staff_service.update_form(text_after_command, "admin", message.from_user.username.lower(), actual=False)
                     text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
                     for nick in list(ADMIN_USERNAMES.values()):
                         text += nick[:3] + "...\n"
@@ -290,12 +312,12 @@ async def run_wizard():
         await message.reply(text)
 
     @app.on_message(filters.command("setspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
-    async def cmd_view_stat(client: Client, message: Message):
+    async def spam_set(client: Client, message: Message):
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used setspam")
-        await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, после того как будете уверены в отправки этого сообщения - /startspam <- тык или если хотите отменить не пишите /startspam или снова напишите /setspam для редактирования")
+        await message.reply("Следующее Ваше сообщение будет сохранено в качестве рассылки, также можно добавить url кнопки: для этого первой строкой перечислите каждая на отдельной строке: [текст кнопки](url ссылка) включая скобки, максимум 4 шт\nПосле того как будете уверены в отправки этого сообщения - /startspam <- тык \nили если хотите отменить не пишите /startspam \nили отредактируйте это сообщение, удостоверьтесь и /startspam")
 
     @app.on_message(filters.command("startspam") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
-    async def cmd_view_stat(client: Client, message: Message):
+    async def spam_start(client: Client, message: Message):
         accepted_rassilok = 0
         rejected_rassilok = 0
         copy_message_id = message.id - 1
@@ -305,7 +327,7 @@ async def run_wizard():
         if msg and msg.from_user.is_bot:
             copy_message_id -= 1
             msg = await client.get_messages(message.chat.id, copy_message_id)
-        if not msg or msg.from_user.is_bot or msg.text == "/setspam" or msg.text == "/setspam ":
+        if not msg or msg.from_user.is_bot or msg.text.startswith("/setspam"):
             await message.reply(f"Рассылка окончена.\nпроверьте наличие Вашего сообщения")
             return
         users = await user_service.get_user(limit=False)
@@ -322,6 +344,12 @@ async def run_wizard():
                 rejected_rassilok += 1
         await message.reply(f"Рассылка окончена.\nотправлено: {accepted_rassilok}, отклонено: {rejected_rassilok}")
 
+    @app.on_message(filters.command("spam2") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
+    async def spam_tool(client: Client, message: Message):
+        kb = [[InlineKeyboardButton(text="Рассылка с кнопками url (с ссылкой)", callback_data="spam:url")],
+              [InlineKeyboardButton(text="Рассылка без кнопок", callback_data="spam:content")],
+              [InlineKeyboardButton(text="Рассылка с кнопками callback (обратитесь к админу за подробностями)", callback_data="spam:callback")]]
+        await message.reply(f"Выбери вариант рассылки:", reply_markup=InlineKeyboardMarkup(kb))
 
     @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):
@@ -394,16 +422,18 @@ async def run_wizard():
         if not got:
             logger.info("SSSkipping already-processed message %s:%s", chat_id, msg_id)
             return False
-        next_pass = await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
-        if next_pass or next_pass is None:
-            logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} operator_form_conv accept calllback")
-            logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} agent_form_conv get calllback")
-            await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
-        else:
-            logger.warning(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} operator_form_conv NOT accept calllback")
+        logger.info(
+            f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} callback_global_router get calllback")
+        global_call = await callback_global_router(client, callback, form_service, session_store, user_service, staff_service)
+        if not global_call:
+            next_pass = await callback_router(client, callback, session_store, operator_form_conv, form_service, cmd_start)
+            if next_pass or next_pass is None:
+                logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} operator_form_conv accept calllback")
+                logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} agent_form_conv get calllback")
+                await callback_router(client, callback, session_store, agent_form_conv, form_service, cmd_start)
+            else:
+                logger.warning(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} operator_form_conv NOT accept calllback")
 
-        logger.info(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} callback_global_router get calllback")
-        await callback_global_router(client, callback, form_service, session_store)
         goat = await session_store.pop_other(key)
         if not goat:
             logger.error("callback btn is not unlock %s:%s", chat_id, msg_id)

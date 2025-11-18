@@ -1,21 +1,22 @@
 import asyncio
-import logging
 import random
 from typing import Sequence
 
 from pyrogram import Client
 from pyrogram.errors import MessageIdInvalid, QueryIdInvalid, FloodWait, Forbidden
-from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.raw import types as raw_types
 from pyrogram.raw.functions.messages import SendMessage as SendMessage_Raw
-from pyrogram.raw import functions, types as raw_types
+from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from .form_handler import FormConversation
-from ..security.security_rules import MODER_USERNAMES
-from ..storage.session_store import RedisSessionStore
-from ..services.form_service import FormService
-from ..utils.utils import format_content, translate_role
-from ..utils.busines_text import *
 from ..config import settings
+from ..security.security_rules import MODER_USERNAMES
+from ..services.form_service import FormService
+from ..services.staff_service import StaffService
+from ..services.user_service import UserService
+from ..storage.session_store import RedisSessionStore
+from ..utils.busines_text import *
+from ..utils.utils import format_content, translate_role
 
 logger = logging.getLogger(__name__)
 
@@ -386,7 +387,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         await callback.answer()
         return None
 
-async def callback_global_router(client: Client, callback: CallbackQuery, form_service: FormService, sesssion_store: RedisSessionStore):
+async def callback_global_router(client: Client, callback: CallbackQuery, form_service: FormService, sesssion_store: RedisSessionStore, user_service: UserService, staff_service:StaffService):
     data_g = callback.data or ''
     user = callback.from_user
     logger.info(f"{user.username or user.id} {user.first_name} global callback router received {data_g}")
@@ -433,6 +434,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         session['menu_id'] = new_message.id
         await sesssion_store.set_overwrite(user.id, session)
         await safe_answer(callback)
+        return True
 
     elif data_g.startswith('deny_reason:'):
         form_id = 0
@@ -442,7 +444,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         except Exception:
             logger.error(f"{user.username or user.id} {user.first_name} global callback router invalid data")
             await callback.answer("Неправильные данные", show_alert=True)
-            return
+            return False
 
         logger.info(f"{user.username or user.id} {user.first_name} global callback router accept deny_reason")
 
@@ -495,6 +497,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             await callback.message.edit_reply_markup(None)
         except Exception:
             logger.warning("global callback router deny_reason failed to edit message")
+        return True
     elif data_g.startswith('form:'):
         form_id = 0
         try:
@@ -503,13 +506,13 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         except Exception:
             logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: invalid data")
             await callback.answer("Неправильные данные", show_alert=True)
-            return
+            return False
 
         form = await form_service.get_form(form_id=form_id)
         if not form:
             logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: form not found")
             await callback.answer("Заявка не найдена или уже обработана.", show_alert=True)
-            return
+            return False
 
         if form.status is not None:
             logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: {form.status} is not None")
@@ -518,7 +521,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 await callback.message.edit_reply_markup(None)
             except Exception:
                 pass
-            return
+            return True
 
         logger.info(f"{user.username or user.id} {user.first_name} global callback router accept form:")
 
@@ -526,9 +529,16 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
 
         status_label = "✅ Успешна" if new_status else "❌ Отклонена"
 
-        # {f'Назначено {form.assigned_to}' if new_status and form.role != "operator" else ' '}
+        role = (form.role or "").lower()
+        assigned = form.assigned_to or ""
+
         if new_status:
             await form_service.update_form(form_id, None, new_status)
+            if role == "agent":
+                await staff_service.update_form(find_username=assigned, find_role="moderator", agent_need=False)
+            elif role == "operator":
+                await staff_service.update_form(find_username=assigned, find_role="moderator", operator_need=False)
+
             try:
                 await callback.answer(f"Заявка {status_label}", show_alert=True)
             except Exception:
@@ -542,8 +552,6 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             logger.warning("global callback router form: failed to edit message")
 
         user_id = form.user_id
-        role = (form.role or "").lower()
-        assigned = form.assigned_to or ""
 
         if role == "operator":
             logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as operator")
@@ -559,6 +567,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             else:  # Успешно
                 manager_ref = f"@{assigned}" if assigned else "(менеджер не назначен)"
                 await safe_send_to_user(client, user_id, operator_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", manager_ref), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
+            return True
 
         elif role == "agent":
             logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as agent")
@@ -604,9 +613,163 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 await safe_send_to_user(user_id,
                                         "Ваша заявка одобрена — менеджер получил анкету и свяжется с вами.")
             '''
+            return True
         else:
             logger.info(f"{user.username or user.id} {user.first_name} global callback router reject: 404")
             await safe_send_to_user(client, user_id, f"Статус вашей заявки: {status_label}")
-    return
+            return True
+
+    elif data_g.startswith('spam'):
+        async def get_last_msg():
+            msg = await client.get_messages(callback.from_user.id, callback.message.id)
+            if msg and msg.from_user.is_bot:
+                msg = await client.get_messages(callback.from_user.id, callback.message.id)
+            if not msg or msg.from_user.is_bot or msg.text.startswith("/setspam"):
+                await callback.message.reply(f"Рассылка окончена.\nпроверьте наличие Вашего сообщения")
+                return msg
+            return None
+
+        async def get_tittle_btn(callback_data:str, target:str="url(ссылку)"):
+            msg = await get_last_msg()
+            if msg:
+                if msg.text == "exit":
+                    return True
+                data_spam = await sesssion_store.get_other(key=f"{callback.from_user.id}:spam") or dict()
+                found = False
+                inc = 0
+                while inc < 3:
+                    if data_spam.get(f"title{inc}"):
+                        inc += 1
+                    else:
+                        found = True
+                        break
+                if found:
+                    data_spam.update({f"title{inc}": msg.text})
+                    await sesssion_store.set_other(key=f"{callback.from_user.id}:spam", value=data_spam)
+                    kb = [[InlineKeyboardButton(text="Отправил", callback_data=callback_data)]]
+                    text = f"Отправьте {target} кнопки, если хотите прервать напишите 'exit'"
+
+                    await callback.message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
+                    return True
+                else:
+                    await callback.message.reply("Попробуйте ещё раз, может уже максиму 3 кнопким?")
+                    return True
+            else:
+                await callback.message.reply("Попробуйте ещё раз, может уже максимум 3 кнопки?")
+                return True
+
+        async def get_url_btn(callback_data:str, target:str="название", mode:str="url"):
+            msg = await get_last_msg()
+            if msg:
+                if msg.text == "exit":
+                    return True
+                data_spam = await sesssion_store.get_other(key=f"{callback.from_user.id}:spam") or dict()
+                found = False
+                inc = 0
+                while inc < 3:
+                    if data_spam.get(f"url{inc}"):
+                        inc += 1
+                    else:
+                        found = True
+                        break
+                if found:
+                    data_spam.update({f"url{inc}": msg.text})
+                    data_spam.update({f"mode": mode})
+                    await sesssion_store.set_other(key=f"{callback.from_user.id}:spam", value=data_spam)
+                    kb = [[InlineKeyboardButton(text="Отправил", callback_data=callback_data)]]
+                    text = f"Отправьте {target} кнопки, если хотите прервать напишите 'exit'"
+                    if inc > 0:
+                        text = "Чтобы закончить добавление кнопок нажмите кнопку 'Готово'\n" + text
+                        kb.append([InlineKeyboardButton(text="Готово", callback_data=callback_data)])
+                    await callback.message.reply(text,
+                                                 reply_markup=InlineKeyboardMarkup(kb))
+                    return True
+                else:
+                    await callback.message.reply("Попробуйте ещё раз, может уже максимум 3 кнопки?")
+                    return True
+            else:
+                await callback.message.reply("Попробуйте ещё раз, может уже максимум 3 кнопки?")
+                return True
+
+        data_g = data_g.split(':')
+        match data_g[1]:
+            case "url":
+                match data_g[2]:
+                    case "title_btn":
+                        await get_tittle_btn(callback_data="spam:url:url_btn")
+                    case "url_btn":
+                        await get_url_btn(callback_data="spam:url:title_btn")
+                    case _:
+                        kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Отправил", callback_data="spam:url:title_btn")]])
+                        await callback.message.reply("Отправьте название кнопки, если хотите прервать напишите 'exit'", reply_markup=kb)
+            case "callback":
+                match data_g[2]:
+                    case "title_btn":
+                        await get_tittle_btn(callback_data="spam:callback:url_btn", target="точку входа")
+                    case "url_btn":
+                        await get_url_btn(callback_data="spam:callback:title_btn", mode="callback")
+                    case _:
+                        kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Отправил", callback_data="spam:callback:title_btn")]])
+                        await callback.message.reply("Отправьте название кнопки, если хотите прервать напишите 'exit'",
+                                                     reply_markup=kb)
+            case "content":
+                msg = await get_last_msg()
+                if msg:
+                    if msg.text == "exit":
+                        return True
+                kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Отправил", callback_data="spam:send")]])
+                await callback.message.reply("Отправьте текст сообщения с медиа, если хотите прервать напишите 'exit'", reply_markup=kb)
+            case "send":
+                msg = await get_last_msg()
+                if msg:
+                    if msg.text == "exit":
+                        return True
+
+                    data_spam = await sesssion_store.get_other(key=f"{callback.from_user.id}:spam") or dict()
+                    kb = []
+                    if data_spam.get("mode") == "callback"  and data_spam.get("url0"):
+                        for i in range(3):
+                            kb.append([InlineKeyboardButton(text=data_spam.get(f"title{i}", "Упс, что-то пошло не так"), callback_data=data_spam.get(f"url{i}", "example.com"))])
+                        kb = InlineKeyboardMarkup(kb)
+                    elif data_spam.get("mode") == "url" and data_spam.get("url0"):
+                        for i in range(3):
+                            kb.append(
+                                [InlineKeyboardButton(text=data_spam.get(f"title{i}", "Упс, что-то пошло не так"), url=data_spam.get(f"url{i}", "example.com"))])
+                        kb = InlineKeyboardMarkup(kb)
+                    else:
+                        kb = None
+
+                    accepted_rassilok = 0
+                    rejected_rassilok = 0
+                    copy_message_id = callback.message.id - 1
+                    await callback.message.reply("Рассылка началась")
+
+                    msg = await client.get_messages(callback.message.chat.id, copy_message_id)
+                    if msg and msg.from_user.is_bot:
+                        copy_message_id -= 1
+                        msg = await client.get_messages(callback.message.chat.id, copy_message_id)
+                    if not msg or msg.from_user.is_bot or msg.text.startswith("/setspam") or msg.text.startswith("/startspam"):
+                        await callback.message.reply(f"Рассылка окончена.\nпроверьте наличие Вашего сообщения")
+                        return True
+                    logger.info(f"{callback.message.from_user.id} start rassilku, kb: {kb}, text: {msg.text[:50]}")
+                    users = await user_service.get_user(limit=False)
+
+                    for user_entry in users:
+                        try:
+                            msg = await client.copy_message(chat_id=user_entry.user_id, message_id=copy_message_id,
+                                                            from_chat_id=callback.from_user.id, reply_markup=kb)
+                            if msg is not None:
+                                accepted_rassilok += 1
+                            else:
+                                rejected_rassilok += 1
+                        except Exception:
+                            logger.warning(f"Failed to send rassilka to {user_entry.user_id}")
+                            rejected_rassilok += 1
+                    await callback.message.reply(
+                        f"Рассылка окончена.\nотправлено: {accepted_rassilok}, отклонено: {rejected_rassilok}")
+                else:
+                    await callback.message.reply("Попробуйте ещё раз")
+        return True
+    return False
 
 logger.info("Thaumaturge IMPORTED")

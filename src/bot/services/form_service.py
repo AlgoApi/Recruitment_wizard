@@ -1,38 +1,39 @@
-from datetime import datetime, timedelta, timezone
+import asyncio
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-import asyncio
 
 from sqlalchemy import select, update, text, desc
 
-from ..models.db import AsyncSessionLocal, DBManager
-from ..models.form import FormModel
-from ..security.security_rules import MODER_USERNAMES
+from .staff_service import StaffService
+from ..models.db import DBManager
+from ..models.form import FormModel, StaffModel
 
 logger = logging.getLogger(__name__)
 
 class FormService:
-    def __init__(self, db_manager: DBManager):
-        self._sigma = -1
-        self._sigma_lock = asyncio.Lock()
+    def __init__(self, db_manager: DBManager, staff_service: StaffService):
         self.db = db_manager
+        self._staff_service = staff_service
 
     async def create_draft(self, user_id: int, username: str, role: str, content: dict):
         # async with AsyncSessionLocal() as session:
         logger.info(f"create_draft {user_id}")
-        users = list(MODER_USERNAMES.values())
-        if self._sigma < 0:
-            last_id = await self.get_last_id_from_db() or 0
-            n = len(users)
-            self._sigma = (last_id + 1) % n
+        staff_entry:StaffModel
+        staffs = await self._staff_service.get_staff(role="moderator", limit=False)
+        assigned = "NOT ASSIGNED"
+        for staff_entry in staffs:
+            if role == "operator":
+                if staff_entry.operator_need:
+                    assigned = staff_entry.username
+            elif role == "agent":
+                if staff_entry.agent_need:
+                    assigned = staff_entry.username
+            else:
+                logger.error(f"sigma {user_id}: {assigned}")
 
-        async with self._sigma_lock:
-            idx = self._sigma
-            assigned = users[idx]
-            self._sigma = (self._sigma + 1) % len(users)
-
-        logger.info(f"sigma {user_id}: {self._sigma}")
+        logger.info(f"sigma {user_id}: {assigned}")
 
         form = FormModel(user_id=user_id, username=username,
                          role=role, content=content, status=None, cooldown=True,
