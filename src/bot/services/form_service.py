@@ -9,6 +9,7 @@ from sqlalchemy import select, update, text, desc
 from .staff_service import StaffService
 from ..models.db import DBManager
 from ..models.form import FormModel, StaffModel
+from ..utils.utils import ensure_aware_utc, remaining_seconds_moscow
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,27 @@ class FormService:
                 if staff_entry.agent_need:
                     assigned = staff_entry.username
             else:
-                logger.error(f"sigma {user_id}: {assigned}")
+                logger.error(f"sigma {user_id}: {assigned} staffs is not None")
+
+        if assigned == "NOT ASSIGNED":
+            if role == "operator":
+                await self._staff_service.update_form(find_role="moderator", operator_need=True)
+            elif role == "agent":
+                await self._staff_service.update_form(find_role="moderator", agent_need=True)
+            logger.info(f"empty sigma {user_id}: {assigned} recycle moderators")
+            staffs = await self._staff_service.get_staff(role="moderator", limit=False)
+            for staff_entry in staffs:
+                if role == "operator":
+                    if staff_entry.operator_need:
+                        assigned = staff_entry.username
+                elif role == "agent":
+                    if staff_entry.agent_need:
+                        assigned = staff_entry.username
+                else:
+                    logger.error(f"sigma {user_id}: {assigned} staffs is not None")
+
+        if assigned == "NOT ASSIGNED":
+            logger.error(f"EMPTY sigma {user_id}: {assigned}")
 
         logger.info(f"sigma {user_id}: {assigned}")
 
@@ -175,10 +196,8 @@ class FormService:
         if created_at is None:
             return 0
 
-        now = datetime.now(timezone.utc)
-
-        expiry = created_at + timedelta(hours=hours)
-        remaining_seconds = (expiry - now).total_seconds()
+        # created_at_utc = ensure_aware_utc(created_at)
+        remaining_seconds = remaining_seconds_moscow(created_at, hours)
 
         if remaining_seconds <= 0:
             return 0

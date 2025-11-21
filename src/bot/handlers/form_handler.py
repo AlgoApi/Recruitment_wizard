@@ -141,6 +141,9 @@ class FormConversation:
             logger.warning(f"{user.username or user.id} {user.first_name} handle_message form pages")
             await self._send_page_controls(client, message.chat.id, user.id, session)
         else:
+            logger.info(f"{user.username or user.id} {user.first_name} handle_message try to calc new_needed_vl")
+            if session['question'] + 1 > len(page_fields):
+                session['question'] = 0
             new_needed_vl = page_fields[session['question']].label
             text = f'{target.label} - принято!\nОтправьте {new_needed_vl}:'
             if new_needed_vl.startswith("phone"):
@@ -150,7 +153,8 @@ class FormConversation:
     async def _send_page(self, client, chat_id: int, user_id: int):
         logger.info(f"{user_id} _send_page form page")
         session = await self.session_store.get(user_id)
-        page_idx = session['page']
+        session['run'] = False
+        page_idx = session['page'] or 0
         logger.info(f"{user_id} _send_page page {page_idx}")
         pages = list(self.form_def.pages())
         if page_idx >= len(pages):

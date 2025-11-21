@@ -19,7 +19,8 @@ from .storage.session_store import create_session_store
 from .handlers.form_handler import FormConversation
 from .services.form_service import FormService
 from .services.user_service import UserService
-from .handlers.callbacks import callback_router, callback_global_router
+from .handlers.callbacks import callback_router
+from .handlers.global_callbacks import callback_global_router
 from .forms.definition import operator_form, agent_form
 from .security.security_rules import allowed_admin_rule, ADMIN_USERNAMES, cheker_channel_member
 from .security.security_rules import allowed_moder_rule, MODER_USERNAMES
@@ -31,31 +32,6 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 ALL_CMDS = ["start", "help", "fill", "whoami", "del_admin", "del_moderator", "add_admin", "add_moderator", "stat7",
             "stat30", "stat365", "xxl7", "xxl30", "xxl365", "gay"]
 
-def getter_setter_admitted_users_wizard(logger:logging.Logger, path: str, username:str,
-                      encoding: str = "utf-8", write: bool = False, overwrite: bool = False, data: str = None, _try: bool = False) -> set|None:
-    result = dict()
-    if write:
-        with open(path, "a", encoding=encoding, errors="replace") as f:
-            f.write(f"{username}:{data}\n")
-        return None
-    elif overwrite:
-        with open(path, "w", encoding=encoding, errors="replace") as f:
-            f.write(f"{data}\n")
-        return None
-    else:
-        try:
-            with open(path, "r", encoding=encoding, errors="replace") as f:
-                for line in f:
-                    line = line.strip()
-                    if line == "":
-                        continue
-                    result.update({line.split(":")[0]:line.split(":")[1]})
-        except FileNotFoundError:
-            if not _try:
-                return getter_setter_admitted_users_wizard(logger, path, username, encoding, write, overwrite, data, True)
-    logger.info(f"getter_setter write:{write} overwrite:{overwrite} data:{data}")
-    return result
-
 async def run_wizard():
     setup_logging(settings.log_level)
     logger = logging.getLogger(__name__)
@@ -65,13 +41,6 @@ async def run_wizard():
 
     logger.info(f"init_db")
     await AsyncSessionLocal.init_db()
-
-    logger.info("get moder")
-    MODER_USERNAMES.update(getter_setter_admitted_users_wizard(logger, path="moders.txt", username=None))
-    logger.info(MODER_USERNAMES)
-    logger.info("get admin")
-    ADMIN_USERNAMES.update(getter_setter_admitted_users_wizard(logger, path="admins.txt", username=None))
-    logger.info(ADMIN_USERNAMES)
 
     logger.info("session_store")
     session_store = await create_session_store()
@@ -87,6 +56,7 @@ async def run_wizard():
     MODER_USERNAMES.update({row.assigned_to: row.username for row in moders_rows})
     logger.info(MODER_USERNAMES)
     del moders_rows
+    logger.info("get admins db")
     admins_rows = await staff_service.get_staff(role="admin", limit=False)
     ADMIN_USERNAMES.update({row.assigned_to: row.username for row in admins_rows})
     logger.info(ADMIN_USERNAMES)
@@ -127,7 +97,7 @@ async def run_wizard():
         commands = [
             BotCommand(command="start", description="Начать")
         ]
-        if message.from_user.username in list(ADMIN_USERNAMES.values()):
+        if (message.from_user.username or "").lower() in list(ADMIN_USERNAMES.values()):
             text += '/add_moderator <username>(без собачки) - Добавить права менеджера пользователю\n'
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
             text += '/del_admin <username>(без собачки) - Удалить права админа у пользователя\n'
@@ -141,7 +111,7 @@ async def run_wizard():
         if (message.from_user.username or "").lower() == settings.superadmin_username.lower():
             text += '/add_admin <username>(без собачки) - Добавить права админа пользователю\n'
             text += '\n'
-        if message.from_user.username in list(MODER_USERNAMES.values()):
+        if (message.from_user.username or "").lower() in list(MODER_USERNAMES.values()):
             text += '/del_moderator <username>(без собачки) - Удалить права менеджера у пользователя\n'
             text += '\n'
 
@@ -185,7 +155,6 @@ async def run_wizard():
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:]).lower()
-            getter_setter_admitted_users_wizard(logger, "moders.txt", write=True, data=text_after_command,username=message.from_user.username)
             await staff_service.update_form(find_role="moderator", find_assigned_to=message.from_user.username.lower(), actual=False)
             staff = await staff_service.create_draft(text_after_command, "moderator", message.from_user.username.lower(), True)
             await staff_service.submit_staff(staff)
@@ -203,10 +172,10 @@ async def run_wizard():
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
-            getter_setter_admitted_users_wizard(logger, "admins.txt", write=True, data=text_after_command, username=f"{message.from_user.username}{len(ADMIN_USERNAMES)}")
-            ADMIN_USERNAMES.update({message.from_user.username:text_after_command})
-            await staff_service.update_form(find_role="admin", find_assigned_to="alogapi", actual=False)
-            staff = await staff_service.create_draft(text_after_command, "admin", "alogapi", True)
+            len_adm = len(ADMIN_USERNAMES)
+            ADMIN_USERNAMES.update({f"{message.from_user.username.lower()}{len_adm}":text_after_command})
+            # await staff_service.update_form(find_role="admin", find_assigned_to="alogapi", actual=False)
+            staff = await staff_service.create_draft(text_after_command, "admin", f"{message.from_user.username.lower()}{len_adm}", True)
             await staff_service.submit_staff(staff)
             text = f"Админов теперь: {len(ADMIN_USERNAMES)}\n"
             for nick in list(ADMIN_USERNAMES.values()):
@@ -231,7 +200,6 @@ async def run_wizard():
                     for nick in list(MODER_USERNAMES.values()):
                         text += nick[:3] + "...\n"
                     await message.reply(text)
-                    getter_setter_admitted_users_wizard(logger, "moders.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in MODER_USERNAMES.items()), username=message.from_user.username)
                 else:
                     await message.reply("Ты можешь отправить в отставку только своих")
             else:
@@ -245,8 +213,9 @@ async def run_wizard():
         args = message.command
         if len(args) > 1:
             text_after_command = " ".join(args[1:])
+            text_after_command = text_after_command.lower()
             if text_after_command in list(ADMIN_USERNAMES.values()):
-                if ADMIN_USERNAMES.get(message.from_user.username, "") == text_after_command or message.from_user.username.lower() == settings.superadmin_username.lower():
+                if ADMIN_USERNAMES.get(message.from_user.username.lower(), "") == text_after_command or message.from_user.username.lower() == settings.superadmin_username.lower():
                     for id_name, nick in list(ADMIN_USERNAMES.items()):
                         if text_after_command == nick:
                             del ADMIN_USERNAMES[f"{id_name}"]
@@ -255,7 +224,6 @@ async def run_wizard():
                     for nick in list(ADMIN_USERNAMES.values()):
                         text += nick[:3] + "...\n"
                     await message.reply(text)
-                    getter_setter_admitted_users_wizard(logger, "admins.txt", overwrite=True, data="\n".join(f"{k}:{v}" for k, v in ADMIN_USERNAMES.items()), username=message.from_user.username)
                 else:
                     await message.reply("Ты можешь отправить в отставку только себя")
             else:
@@ -346,10 +314,16 @@ async def run_wizard():
 
     @app.on_message(filters.command("spam2") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def spam_tool(client: Client, message: Message):
-        kb = [[InlineKeyboardButton(text="Рассылка с кнопками url (с ссылкой)", callback_data="spam:url")],
+        await session_store.del_other(f"{message.chat.id}:spam")
+        kb = [[InlineKeyboardButton(text="Рассылка с кнопками url (с ссылкой)", callback_data="spam:url:")],
               [InlineKeyboardButton(text="Рассылка без кнопок", callback_data="spam:content")],
-              [InlineKeyboardButton(text="Рассылка с кнопками callback (обратитесь к админу за подробностями)", callback_data="spam:callback")]]
+              [InlineKeyboardButton(text="Рассылка с кнопками callback (обратитесь к админу за подробностями)", callback_data="spam:callback:")]]
         await message.reply(f"Выбери вариант рассылки:", reply_markup=InlineKeyboardMarkup(kb))
+
+    @app.on_message(filters.command("clear_spam2") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
+    async def spam_tool(client: Client, message: Message):
+        await session_store.del_other(f"{message.chat.id}:spam")
+        await message.reply("Готово")
 
     @app.on_message(filters.command("view") & filters.private & allowed_admin_rule & mpg_fabric(logger, session_store))
     async def cmd_view_forms(client: Client, message: Message):

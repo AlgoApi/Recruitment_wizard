@@ -25,12 +25,10 @@ class StaffService:
         return staff
 
     async def submit_staff(self, staff: StaffModel):
-        if not getattr(staff, "user_id", None):
-            raise ValueError("user_id is required")
         if not getattr(staff, "username", None):
             raise ValueError("username is required")
 
-        logger.info(f"submit_user: id: {staff.id} user_id: {staff.user_id} username: {staff.username}")
+        logger.info(f"submit_staff: id: {staff.id} assigned_to: {staff.assigned_to} username: {staff.username}")
 
         async def work():
             async with self.db.session() as session:
@@ -125,7 +123,9 @@ class StaffService:
         async def work():
             async with self.db.session() as session:
                 async with session.begin():
-                    stmt = update(StaffModel).where(StaffModel.username == find_username).where(StaffModel.actual == find_actual)
+                    stmt = update(StaffModel).where(StaffModel.actual == find_actual)
+                    if find_username:
+                        stmt = stmt.where(StaffModel.username == find_username)
                     if find_assigned_to:
                         stmt = stmt.where(StaffModel.assigned_to == find_assigned_to)
                     if find_role:
@@ -135,11 +135,13 @@ class StaffService:
                     if res.rowcount == 0:
                         return None
                     # вернуть актуальную запись
-                    stmt_res = select(StaffModel).where(StaffModel.username == find_username).where(StaffModel.actual == find_actual)
+                    stmt_res = select(StaffModel).where(StaffModel.actual == find_actual)
+                    if find_username:
+                        stmt_res = stmt_res.where(StaffModel.username == find_username)
                     if find_assigned_to:
-                        stmt_res = stmt.where(StaffModel.assigned_to == find_assigned_to)
+                        stmt_res = stmt_res.where(StaffModel.assigned_to == find_assigned_to)
                     if find_role:
-                        stmt_res = stmt.where(StaffModel.role == find_role)
+                        stmt_res = stmt_res.where(StaffModel.role == find_role)
                     result = await session.execute(stmt_res)
                     return result.scalars().first()
 

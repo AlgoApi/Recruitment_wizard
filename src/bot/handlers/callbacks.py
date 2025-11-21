@@ -1,10 +1,11 @@
 import asyncio
+
 import random
 from typing import Sequence
 
 from pyrogram import Client
 from pyrogram.errors import MessageIdInvalid, QueryIdInvalid, FloodWait, Forbidden
-from pyrogram.raw import types as raw_types
+
 from pyrogram.raw.functions.messages import SendMessage as SendMessage_Raw
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -12,11 +13,10 @@ from .form_handler import FormConversation
 from ..config import settings
 from ..security.security_rules import MODER_USERNAMES
 from ..services.form_service import FormService
-from ..services.staff_service import StaffService
-from ..services.user_service import UserService
+
 from ..storage.session_store import RedisSessionStore
 from ..utils.busines_text import *
-from ..utils.utils import format_content, translate_role
+from ..utils.utils import format_content, translate_role, make_raw_reply_markup
 
 logger = logging.getLogger(__name__)
 
@@ -27,23 +27,7 @@ async def safe_answer(callback: CallbackQuery):
         pass
     return
 
-async def make_raw_reply_markup(kb: Sequence[Sequence[InlineKeyboardButton]]):
-    """
-    Конвертирует структуру клавиатуры (список строк, каждая строка — список InlineKeyboardButton)
-    в raw.types.ReplyInlineMarkup, который можно передать в functions.messages.SendMessage.
-    """
-    logger.info("make_raw_reply_markup")
-    rows = []
-    for row in kb:
-        raw_buttons = []
-        for btn in row:
-            if not isinstance(btn.callback_data, (bytes, bytearray)):
-                data = (btn.callback_data or "").encode("utf-8")
-            else:
-                data = btn.callback_data
-            raw_buttons.append(raw_types.KeyboardButtonCallback(text=btn.text, data=data))
-        rows.append(raw_types.KeyboardButtonRow(buttons=raw_buttons))
-    return raw_types.ReplyInlineMarkup(rows=rows)
+
 
 async def send_text_to_topic(client: Client, chat_id: int, topic_init_msg_id: int, text: str, kb: Sequence[Sequence[InlineKeyboardButton]] | None = None):
     logger.info(f"{chat_id} send_text_to_topic")
@@ -188,7 +172,6 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         await safe_answer(callback)
         return None
 
-
     elif session_role and session_role != form_conv.form_def.id:
         logger.info(f"{user.username or user.id} {user.first_name} callback router reject callback - {session_role} != {form_conv.form_def.id}")
 
@@ -282,6 +265,8 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                     session['page'] = session.get('page', 0) + 1
                     pages = list(form_conv.form_def.pages())
                     session["question"] = 0
+                    if session['page']+1 > len(pages):
+                        session['page'] = 0
                     for question in pages[session['page']]:
                         all_answeres = list(session["answers"].keys())
                         for key in all_answeres:
@@ -386,390 +371,3 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         #await callback.message.reply('Нажми /start <- тык')
         await callback.answer()
         return None
-
-async def callback_global_router(client: Client, callback: CallbackQuery, form_service: FormService, sesssion_store: RedisSessionStore, user_service: UserService, staff_service:StaffService):
-    data_g = callback.data or ''
-    user = callback.from_user
-    logger.info(f"{user.username or user.id} {user.first_name} global callback router received {data_g}")
-    if data_g.startswith('info:'):
-        _, action = data_g.split(':')
-        logger.info(f"{user.username or user.id} {user.first_name} global callback router accept info:")
-        session = await sesssion_store.get(user.id) or {}
-
-        if session.get('menu_id', None):
-            try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
-            except MessageIdInvalid:
-                pass
-
-        kb = [[InlineKeyboardButton("назад", callback_data="cmd_start")]]
-
-        if action == "info":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted info")
-            kb.append([InlineKeyboardButton("Оставить обращение", callback_data="info:request")])
-
-            new_message = await callback.message.reply(base_info, reply_markup=InlineKeyboardMarkup(kb))
-        elif action == "request":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted request")
-            kb.append([InlineKeyboardButton("Партнёрство", callback_data="info:partner"),
-              InlineKeyboardButton("Обращение", callback_data="info:message")])
-            kb.append([InlineKeyboardButton("Помощь", callback_data="info:help")])
-            new_message = await callback.message.reply(request_info, reply_markup=InlineKeyboardMarkup(kb))
-        elif action == "partner":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted partner")
-            new_message = await callback.message.reply(partner_info, reply_markup=InlineKeyboardMarkup(kb))
-            await send_text_to_topic(client, settings.group_id, settings.partner_group_id, f"{user.first_name} @{user.username or user.id} Заявляет о желании в партнёрстве, напишите в лс")
-        elif action == "message":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted message")
-            new_message = await callback.message.reply(message_info, reply_markup=InlineKeyboardMarkup(kb))
-            await send_text_to_topic(client, settings.group_id, settings.message_group_id,
-                                      f"{user.first_name} @{user.username or user.id} Хочет передать обращение, напишите в лс")
-        else: # always help!
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router info: interpreted help")
-            new_message = await callback.message.reply(help_info, reply_markup=InlineKeyboardMarkup(kb))
-            await send_text_to_topic(client, settings.group_id, settings.help_group_id,
-                                      f"{user.first_name} @{user.username or user.id} Необходима ПОМОЩЬ, напишите в лс")
-        if not session:
-            await sesssion_store.set_initialize(user.id, session)
-        session['menu_id'] = new_message.id
-        await sesssion_store.set_overwrite(user.id, session)
-        await safe_answer(callback)
-        return True
-
-    elif data_g.startswith('deny_reason:'):
-        form_id = 0
-        try:
-            _, raw_id, reason = data_g.split(":")
-            form_id = int(raw_id)
-        except Exception:
-            logger.error(f"{user.username or user.id} {user.first_name} global callback router invalid data")
-            await callback.answer("Неправильные данные", show_alert=True)
-            return False
-
-        logger.info(f"{user.username or user.id} {user.first_name} global callback router accept deny_reason")
-
-        form = await form_service.get_form(form_id=form_id)
-
-        user_id = form.user_id
-
-        deny_text = ""
-        deny_key = ""
-
-        i = 0
-        give_a_new_rec = ""
-        cooldown = True
-        match form.role:
-            case "agent":
-                for key, text in agent_deny_reasons_text.items():
-                    if key != "Клишированный отказ":
-                        cooldown = False
-                    if i == int(reason):
-                        deny_text = text
-                        deny_key = key
-                    i += 1
-                give_a_new_rec = "operator"
-            case "operator":
-                for key, text in operator_deny_reasons_text.items():
-                    if key != "Клишированный отказ":
-                        cooldown = False
-                    if i == int(reason):
-                        deny_text = text
-                        deny_key = key
-                    i += 1
-                give_a_new_rec = "agent"
-
-        text_to_user = deny_text
-        logger.debug(f"{user.username or user.id} {user.first_name} global callback router deny_reason {form.role} - {deny_key} = {reason}, give_a_new_rec {give_a_new_rec}")
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("Интересно!", callback_data=f"{give_a_new_rec}:start")]])
-        await safe_send_to_user(client, user_id, text_to_user, reply_markup_v=kb)
-
-        await form_service.update_form(form_id, None, False, cooldown=cooldown)
-
-        try:
-            await callback.answer(f"Заявка ❌ Отклонена", show_alert=True)
-        except Exception:
-            pass
-
-        try:
-            existing_text = callback.message.text or ""
-            new_text = existing_text + f"\nПричина: {deny_key}"
-            await callback.message.edit_text(new_text)
-            await callback.message.edit_reply_markup(None)
-        except Exception:
-            logger.warning("global callback router deny_reason failed to edit message")
-        return True
-    elif data_g.startswith('form:'):
-        form_id = 0
-        try:
-            _, raw_id, action = data_g.split(":")
-            form_id = int(raw_id)
-        except Exception:
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: invalid data")
-            await callback.answer("Неправильные данные", show_alert=True)
-            return False
-
-        form = await form_service.get_form(form_id=form_id)
-        if not form:
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: form not found")
-            await callback.answer("Заявка не найдена или уже обработана.", show_alert=True)
-            return False
-
-        if form.status is not None:
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject form: {form.status} is not None")
-            await callback.answer("Эта заявка уже обработана.", show_alert=True)
-            try:
-                await callback.message.edit_reply_markup(None)
-            except Exception:
-                pass
-            return True
-
-        logger.info(f"{user.username or user.id} {user.first_name} global callback router accept form:")
-
-        new_status = True if action == "accept" else False
-
-        status_label = "✅ Успешна" if new_status else "❌ Отклонена"
-
-        role = (form.role or "").lower()
-        assigned = form.assigned_to or ""
-
-        if new_status:
-            await form_service.update_form(form_id, None, new_status)
-            if role == "agent":
-                await staff_service.update_form(find_username=assigned, find_role="moderator", agent_need=False)
-            elif role == "operator":
-                await staff_service.update_form(find_username=assigned, find_role="moderator", operator_need=False)
-
-            try:
-                await callback.answer(f"Заявка {status_label}", show_alert=True)
-            except Exception:
-                pass
-        try:
-            existing_text = callback.message.text or ""
-            new_text = existing_text + f"\n\n🟦 Статус: {status_label}"
-            await callback.message.edit_text(new_text)
-            await callback.message.edit_reply_markup(None)
-        except Exception:
-            logger.warning("global callback router form: failed to edit message")
-
-        user_id = form.user_id
-
-        if role == "operator":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as operator")
-            count = await sesssion_store.pop_other(form.assigned_to) or 0
-            await sesssion_store.set_other(form.assigned_to, int(count) - 1, xx=True)
-            if not new_status:  # Отклонено
-                kb = [[]]
-                i = 0
-                for k, v in operator_deny_reasons_text.items():
-                    kb[0].append(InlineKeyboardButton(f"❌ {k}", callback_data=f"deny_reason:{form.id}:{i}"))
-                    i += 1
-                await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
-            else:  # Успешно
-                manager_ref = f"@{assigned}" if assigned else "(менеджер не назначен)"
-                await safe_send_to_user(client, user_id, operator_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", manager_ref), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
-            return True
-
-        elif role == "agent":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as agent")
-            if not new_status:  # Отклонено
-                #
-                kb = [[]]
-                i = 0
-                for k, v in agent_deny_reasons_text.items():
-                    kb[0].append(InlineKeyboardButton(f"❌ {k}", callback_data=f"deny_reason:{form.id}:{i}"))
-                    i += 1
-                await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
-            else:
-                if assigned == MODER_USERNAMES.get("boobsmarley"):
-                    text = agent_accept_nastavnik.replace("{ASSIGNED_TO NOT ASSIGNED}", "BoobsMarley")
-                else:
-                    text = agent_accept
-                await safe_send_to_user(client, user_id, text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
-            '''
-            DEPRECATED
-            else:  # Успешно: отправляем полную анкету назначенному менеджеру
-                if assigned:
-                    manager_target = f"@{assigned}"
-                    # формируем сообщение для менеджера: полная анкета + контакт
-                    manager_text = (
-                            f"Новая успешная заявка (#{form_id}) от @{form.username} (id:{user_id}).\n\n"
-                            "📋 Анкета:\n" + format_content(form.content or {})
-                    )
-                    sent_ok = False
-
-                    try:
-                        await client.send_message(chat_id=manager_target, text=manager_text)
-                        sent_ok = True
-                    except Exception:
-                        sent_ok = False
-
-                    if sent_ok:
-                        await safe_send_to_user(user_id,
-                                                "Ваша заявка одобрена — менеджер получил анкету и свяжется с вами.")
-                    else:
-                        await callback.message.reply(f'НЕ УДАЛОСЬ ОТПРАВИТЬ АНКЕТУ МЕНЕДЖЕРУ {manager_target}!!')
-                else:
-                    await callback.message.reply('МЕНЕДЖЕР НЕ НАЗНАЧЕН, АНКЕТА НЕ ОТПРАВЛЕНА МЕНЕДЖЕРУ!!')
-                await safe_send_to_user(user_id,
-                                        "Ваша заявка одобрена — менеджер получил анкету и свяжется с вами.")
-            '''
-            return True
-        else:
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject: 404")
-            await safe_send_to_user(client, user_id, f"Статус вашей заявки: {status_label}")
-            return True
-
-    elif data_g.startswith('spam'):
-        async def get_last_msg():
-            msg = await client.get_messages(callback.from_user.id, callback.message.id)
-            if msg and msg.from_user.is_bot:
-                msg = await client.get_messages(callback.from_user.id, callback.message.id)
-            if not msg or msg.from_user.is_bot or msg.text.startswith("/setspam"):
-                await callback.message.reply(f"Рассылка окончена.\nпроверьте наличие Вашего сообщения")
-                return msg
-            return None
-
-        async def get_tittle_btn(callback_data:str, target:str="url(ссылку)"):
-            msg = await get_last_msg()
-            if msg:
-                if msg.text == "exit":
-                    return True
-                data_spam = await sesssion_store.get_other(key=f"{callback.from_user.id}:spam") or dict()
-                found = False
-                inc = 0
-                while inc < 3:
-                    if data_spam.get(f"title{inc}"):
-                        inc += 1
-                    else:
-                        found = True
-                        break
-                if found:
-                    data_spam.update({f"title{inc}": msg.text})
-                    await sesssion_store.set_other(key=f"{callback.from_user.id}:spam", value=data_spam)
-                    kb = [[InlineKeyboardButton(text="Отправил", callback_data=callback_data)]]
-                    text = f"Отправьте {target} кнопки, если хотите прервать напишите 'exit'"
-
-                    await callback.message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
-                    return True
-                else:
-                    await callback.message.reply("Попробуйте ещё раз, может уже максиму 3 кнопким?")
-                    return True
-            else:
-                await callback.message.reply("Попробуйте ещё раз, может уже максимум 3 кнопки?")
-                return True
-
-        async def get_url_btn(callback_data:str, target:str="название", mode:str="url"):
-            msg = await get_last_msg()
-            if msg:
-                if msg.text == "exit":
-                    return True
-                data_spam = await sesssion_store.get_other(key=f"{callback.from_user.id}:spam") or dict()
-                found = False
-                inc = 0
-                while inc < 3:
-                    if data_spam.get(f"url{inc}"):
-                        inc += 1
-                    else:
-                        found = True
-                        break
-                if found:
-                    data_spam.update({f"url{inc}": msg.text})
-                    data_spam.update({f"mode": mode})
-                    await sesssion_store.set_other(key=f"{callback.from_user.id}:spam", value=data_spam)
-                    kb = [[InlineKeyboardButton(text="Отправил", callback_data=callback_data)]]
-                    text = f"Отправьте {target} кнопки, если хотите прервать напишите 'exit'"
-                    if inc > 0:
-                        text = "Чтобы закончить добавление кнопок нажмите кнопку 'Готово'\n" + text
-                        kb.append([InlineKeyboardButton(text="Готово", callback_data=callback_data)])
-                    await callback.message.reply(text,
-                                                 reply_markup=InlineKeyboardMarkup(kb))
-                    return True
-                else:
-                    await callback.message.reply("Попробуйте ещё раз, может уже максимум 3 кнопки?")
-                    return True
-            else:
-                await callback.message.reply("Попробуйте ещё раз, может уже максимум 3 кнопки?")
-                return True
-
-        data_g = data_g.split(':')
-        match data_g[1]:
-            case "url":
-                match data_g[2]:
-                    case "title_btn":
-                        await get_tittle_btn(callback_data="spam:url:url_btn")
-                    case "url_btn":
-                        await get_url_btn(callback_data="spam:url:title_btn")
-                    case _:
-                        kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Отправил", callback_data="spam:url:title_btn")]])
-                        await callback.message.reply("Отправьте название кнопки, если хотите прервать напишите 'exit'", reply_markup=kb)
-            case "callback":
-                match data_g[2]:
-                    case "title_btn":
-                        await get_tittle_btn(callback_data="spam:callback:url_btn", target="точку входа")
-                    case "url_btn":
-                        await get_url_btn(callback_data="spam:callback:title_btn", mode="callback")
-                    case _:
-                        kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Отправил", callback_data="spam:callback:title_btn")]])
-                        await callback.message.reply("Отправьте название кнопки, если хотите прервать напишите 'exit'",
-                                                     reply_markup=kb)
-            case "content":
-                msg = await get_last_msg()
-                if msg:
-                    if msg.text == "exit":
-                        return True
-                kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Отправил", callback_data="spam:send")]])
-                await callback.message.reply("Отправьте текст сообщения с медиа, если хотите прервать напишите 'exit'", reply_markup=kb)
-            case "send":
-                msg = await get_last_msg()
-                if msg:
-                    if msg.text == "exit":
-                        return True
-
-                    data_spam = await sesssion_store.get_other(key=f"{callback.from_user.id}:spam") or dict()
-                    kb = []
-                    if data_spam.get("mode") == "callback"  and data_spam.get("url0"):
-                        for i in range(3):
-                            kb.append([InlineKeyboardButton(text=data_spam.get(f"title{i}", "Упс, что-то пошло не так"), callback_data=data_spam.get(f"url{i}", "example.com"))])
-                        kb = InlineKeyboardMarkup(kb)
-                    elif data_spam.get("mode") == "url" and data_spam.get("url0"):
-                        for i in range(3):
-                            kb.append(
-                                [InlineKeyboardButton(text=data_spam.get(f"title{i}", "Упс, что-то пошло не так"), url=data_spam.get(f"url{i}", "example.com"))])
-                        kb = InlineKeyboardMarkup(kb)
-                    else:
-                        kb = None
-
-                    accepted_rassilok = 0
-                    rejected_rassilok = 0
-                    copy_message_id = callback.message.id - 1
-                    await callback.message.reply("Рассылка началась")
-
-                    msg = await client.get_messages(callback.message.chat.id, copy_message_id)
-                    if msg and msg.from_user.is_bot:
-                        copy_message_id -= 1
-                        msg = await client.get_messages(callback.message.chat.id, copy_message_id)
-                    if not msg or msg.from_user.is_bot or msg.text.startswith("/setspam") or msg.text.startswith("/startspam"):
-                        await callback.message.reply(f"Рассылка окончена.\nпроверьте наличие Вашего сообщения")
-                        return True
-                    logger.info(f"{callback.message.from_user.id} start rassilku, kb: {kb}, text: {msg.text[:50]}")
-                    users = await user_service.get_user(limit=False)
-
-                    for user_entry in users:
-                        try:
-                            msg = await client.copy_message(chat_id=user_entry.user_id, message_id=copy_message_id,
-                                                            from_chat_id=callback.from_user.id, reply_markup=kb)
-                            if msg is not None:
-                                accepted_rassilok += 1
-                            else:
-                                rejected_rassilok += 1
-                        except Exception:
-                            logger.warning(f"Failed to send rassilka to {user_entry.user_id}")
-                            rejected_rassilok += 1
-                    await callback.message.reply(
-                        f"Рассылка окончена.\nотправлено: {accepted_rassilok}, отклонено: {rejected_rassilok}")
-                else:
-                    await callback.message.reply("Попробуйте ещё раз")
-        return True
-    return False
-
-logger.info("Thaumaturge IMPORTED")
