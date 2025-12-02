@@ -153,6 +153,11 @@ class FormConversation:
     async def _send_page(self, client, chat_id: int, user_id: int):
         logger.info(f"{user_id} _send_page form page")
         session = await self.session_store.get(user_id)
+        if session is None:
+            logger.warning(f"{user_id} warning in 156 line form_handler")
+            await client.send_message(chat_id, text="Вышло время ожидания, начните заполнение анкеты снова", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("начать", callback_data="cmd_start")]]))
+            return
+
         session['run'] = False
         page_idx = session['page'] or 0
         logger.info(f"{user_id} _send_page page {page_idx}")

@@ -14,6 +14,7 @@ from ..services.staff_service import StaffService
 from ..services.user_service import UserService
 from ..storage.session_store import RedisSessionStore
 from ..utils.busines_text import *
+from ..utils.utils import assign_master
 
 logger = logging.getLogger(__name__)
 
@@ -123,12 +124,13 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     i += 1
                 give_a_new_rec = "agent"
 
-        text_to_user = deny_text
+        text_to_user = deny_text.replace("{FIRSTNAME_NOT_ASSIGNED}", user.first_name)
         logger.debug(f"{user.username or user.id} {user.first_name} global callback router deny_reason {form.role} - {deny_key} = {reason}, give_a_new_rec {give_a_new_rec}")
         kb = InlineKeyboardMarkup([[InlineKeyboardButton("Интересно!", callback_data=f"{give_a_new_rec}:start")]])
         await safe_send_to_user(client, user_id, text_to_user, reply_markup_v=kb)
 
-        await form_service.update_form(form_id, None, False, cooldown=cooldown)
+        assigned = await assign_master(staff_service, form.role, user_id)
+        await form_service.update_form(form_id, status=False, assign=assigned)
 
         try:
             await callback.answer(f"Заявка ❌ Отклонена", show_alert=True)
@@ -178,7 +180,6 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         assigned = form.assigned_to or ""
 
         if new_status:
-            await form_service.update_form(form_id, None, new_status)
             if role == "agent":
                 await staff_service.update_form(find_username=assigned, find_role="moderator", agent_need=False)
             elif role == "operator":
@@ -199,9 +200,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         user_id = form.user_id
 
         if role == "operator":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as operator")
-            count = await sesssion_store.pop_other(form.assigned_to) or 0
-            await sesssion_store.set_other(form.assigned_to, int(count) - 1, xx=True)
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router form {form.user_id}: interpreted role as operator")
             if not new_status:  # Отклонено
                 kb = [[]]
                 i = 0
@@ -210,12 +209,19 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:  # Успешно
+                assigned = await assign_master(staff_service, role, user_id)
+                await form_service.update_form(form_id, status=new_status, assign=assigned)
                 manager_ref = f"@{assigned}" if assigned else "(менеджер не назначен)"
+                target = ""
+                for key, val in MODER_USERNAMES.items():
+                    if val == assigned:
+                        target = key
+                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", assigned).replace("{CRED NOT ASSIGNED}", f"{form.user_id}:@{form.username}"))
                 await safe_send_to_user(client, user_id, operator_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", manager_ref), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
             return True
 
         elif role == "agent":
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router form: interpreted role as agent")
+            logger.info(f"{user.username or user.id} {user.first_name} global callback router form {form.user_id}: interpreted role as agent")
             if not new_status:  # Отклонено
                 #
                 kb = [[]]
@@ -225,6 +231,8 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:
+                assigned = await assign_master(staff_service, role, user_id)
+                await form_service.update_form(form_id, status=new_status, assign=assigned)
                 if assigned == MODER_USERNAMES.get("boobsmarley"):
                     text = agent_accept_nastavnik.replace("{ASSIGNED_TO NOT ASSIGNED}", "BoobsMarley")
                 else:
@@ -260,7 +268,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             '''
             return True
         else:
-            logger.info(f"{user.username or user.id} {user.first_name} global callback router reject: 404")
+            logger.error(f"{user.username or user.id} {user.first_name} global callback router reject: 404")
             await safe_send_to_user(client, user_id, f"Статус вашей заявки: {status_label}")
             return True
 

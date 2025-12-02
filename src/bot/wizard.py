@@ -366,9 +366,51 @@ async def run_wizard():
         logger.info(f"{message.from_user.username or message.from_user.id} {message.from_user.first_name} used mymoder")
         await message.reply_text(f"{MODER_USERNAMES.get(message.from_user.username)}")
 
+    @app.on_message(filters.command('gen_callback') & mpg_fabric(logger, session_store) & allowed_admin_rule)
+    async def debug_callback(client: Client, message):
+        parts = message.text.split()
+        if len(parts) < 2:
+            return await message.reply_text("Usage: /gen_callback <callback>")
+
+        callback_v = parts[1]
+
+        await message.reply_text(f"DEBUG CALLBACK BUTTON: {callback_v}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("DELETE AFTER CLICK", callback_data=callback_v)]]))
+
     @app.on_message(filters.command('gay') & mpg_fabric(logger, session_store) & allowed_admin_rule)
-    async def pashalko(client: Client, message):
-        await client.send_photo(message.from_user.id, caption=f"{MODER_USERNAMES.get(message.from_user.username)}", photo="AgACAgIAAxkBAAIDM2kM9OrTy8y7zLWKDMEiVt2B5rbQAAJxD2sbOlNoSFGjptx13Ps1AAgBAAMCAAN5AAceBA")
+    async def pashalko(client: Client, message: Message):
+        parts = message.text.split()
+        if len(parts) < 2:
+            return await message.reply_text("Usage: /pashalko <chat_id>")
+
+        raw = parts[1]
+        try:
+            chat_id_p = int(raw)
+        except ValueError:
+            return await message.reply_text("chat_id должен быть числом")
+
+        logger.info(f"requested chat_id = {chat_id_p}")
+        # проверка get_chat
+        try:
+            chat = await app.get_chat(chat_id_p)
+            logger.info(
+                f"get_chat resolved: id={chat.id} type={getattr(chat, 'type', None)} title={getattr(chat, 'title', None)}")
+        except Exception as e:
+            logger.exception("get_chat failed")
+            await message.reply_text(f"get_chat error: {e}")
+            return
+
+        # запросим первые 1..99
+        ids = list(range(1, 100))
+        msgs = await app.get_messages(chat_id=chat_id_p, message_ids=ids)
+        for idx, m in zip(ids, msgs):
+            if m is None:
+                logger.info(f"[{idx}] None")
+                continue
+            calc_chat_id = getattr(m.chat, "id", None) or "none"
+            frm = getattr(m.from_user, "id", None)
+            logger.info(
+                f"[{idx}] msg.chat.id = {calc_chat_id} msg.message_id = {m.id} from = {frm} text={m.text or m.caption}")
+        logger.info(f"end chat history for {chat_id_p}")
 
     @app.on_message(filters.private & ~filters.command(ALL_CMDS) & mpg_fabric(logger, session_store))
     async def catch_all(client: Client, message: Message):

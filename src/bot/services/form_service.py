@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import select, update, text, desc
+from sqlalchemy.engine import Result, ScalarResult
 
 from .staff_service import StaffService
 from ..models.db import DBManager
@@ -14,47 +15,14 @@ from ..utils.utils import ensure_aware_utc, remaining_seconds_moscow
 logger = logging.getLogger(__name__)
 
 class FormService:
-    def __init__(self, db_manager: DBManager, staff_service: StaffService):
+    def __init__(self, db_manager: DBManager):
         self.db = db_manager
-        self._staff_service = staff_service
 
     async def create_draft(self, user_id: int, username: str, role: str, content: dict):
         # async with AsyncSessionLocal() as session:
         logger.info(f"create_draft {user_id}")
         staff_entry:StaffModel
-        staffs = await self._staff_service.get_staff(role="moderator", limit=False)
         assigned = "NOT ASSIGNED"
-        for staff_entry in staffs:
-            if role == "operator":
-                if staff_entry.operator_need:
-                    assigned = staff_entry.username
-            elif role == "agent":
-                if staff_entry.agent_need:
-                    assigned = staff_entry.username
-            else:
-                logger.error(f"sigma {user_id}: {assigned} staffs is not None")
-
-        if assigned == "NOT ASSIGNED":
-            if role == "operator":
-                await self._staff_service.update_form(find_role="moderator", operator_need=True)
-            elif role == "agent":
-                await self._staff_service.update_form(find_role="moderator", agent_need=True)
-            logger.info(f"empty sigma {user_id}: {assigned} recycle moderators")
-            staffs = await self._staff_service.get_staff(role="moderator", limit=False)
-            for staff_entry in staffs:
-                if role == "operator":
-                    if staff_entry.operator_need:
-                        assigned = staff_entry.username
-                elif role == "agent":
-                    if staff_entry.agent_need:
-                        assigned = staff_entry.username
-                else:
-                    logger.error(f"sigma {user_id}: {assigned} staffs is not None")
-
-        if assigned == "NOT ASSIGNED":
-            logger.error(f"EMPTY sigma {user_id}: {assigned}")
-
-        logger.info(f"sigma {user_id}: {assigned}")
 
         form = FormModel(user_id=user_id, username=username,
                          role=role, content=content, status=None, cooldown=True,
@@ -65,7 +33,7 @@ class FormService:
         logger.debug(f"Draft {user_id} created {form.id}")
         return form
 
-    async def update_form(self, form_id: int, content: dict | None = None, status: bool | None = None, cooldown:bool | None=None):
+    async def update_form(self, form_id: int, content: dict | None = None, status: bool | None = None, cooldown:bool | None=None, assign:str | None = None) -> dict:
         values = {}
         if content is not None:
             values["content"] = content
@@ -73,6 +41,8 @@ class FormService:
             values["status"] = status
         if cooldown is not None:
             values["cooldown"] = cooldown
+        if assign is not None:
+            values["assigned_to"] = assign
 
         if not values:
             logger.debug(f"nothing to update")
@@ -139,7 +109,7 @@ class FormService:
 
         return await self.db.run(work, retries=3)
 
-    async def get_form(self, form_id: int = None, role: str = None, user_id: int = None, assigned_to: str = None, status:bool = None) -> FormModel:
+    async def get_form(self, form_id: int = None, role: str = None, user_id: int = None, assigned_to: str = None, status:bool = None, limit:bool = True) -> FormModel | ScalarResult:
         logger.info(f"get_form: {form_id}")
 
         async def work():
@@ -165,9 +135,13 @@ class FormService:
 
                 stmt = stmt.order_by(FormModel.created_at).limit(1)
 
-                result = await session.execute(stmt)
-                form = result.scalars().first()
-                logger.debug(f"seccess get_form {form_id}: {form.id if form else "None"}")
+                result: Result = await session.execute(stmt)
+                form = result.scalars()
+                if limit:
+                    form = form.first()
+                    logger.debug(f"seccess get_form {form_id}: {form.id if form else "None"}")
+                else:
+                    logger.debug(f"seccess multiple get_form {role}: {"OK" if form else "None"}")
                 return form
 
         return await self.db.run(work, retries=3)

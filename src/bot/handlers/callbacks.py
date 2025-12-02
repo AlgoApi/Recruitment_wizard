@@ -294,7 +294,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                 logger.debug(f"{user.username or user.id} {user.first_name} callback router nav, now session['run'] = False")
                 session["run"] = False
                 await sesssion_store.set_overwrite(user.id, session)
-                await form_conv._send_page(client, callback.message.chat.id, user.id)
+                await form_conv._send_page(client, callback.message.chat.id or user.id, user.id)
             else:
                 logger.info(f"{user.username or user.id} {user.first_name} callback router reject callback - nav, because {form_name} != {form_conv.form_def.id}")
 
@@ -316,44 +316,41 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             session['menu_id'] = new_message.id
             await sesssion_store.set_overwrite(user.id, session)
             #await cmd_start(client, callback.message)
+            topic_init_msg_id = 1
             if session.get('definition_id', "UNDEFINED") == 'agent':
+                topic_init_msg_id = settings.agent_group_id
                 logger.info(f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted agent")
-                header = (
-                    f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"}) ({form.assigned_to})\n"
-                    f"🧑‍💼 Роль: {form.role}\n"
-                    f"📌 От: @{form.username or user.first_name} (id: {form.user_id})\n"
-                    f"🕒 Создано: {form.created_at}\n\n"
-                )
-                content_text = format_content(form.content or {}, form_conv=form_conv)
-                text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
-
-                kb = [
-                    [
-                        InlineKeyboardButton("✅ Успешно", callback_data=f"form:{form.id}:accept"),
-                        InlineKeyboardButton("❌ Отклонено", callback_data=f"form:{form.id}:reject"),
-                    ]
-                ]
-
-                try:
-                    await send_text_to_topic(client=client, chat_id=settings.group_id,
-                                             topic_init_msg_id=settings.agent_group_id, text=text, kb=kb)
-                except FloodWait as e:
-                    await asyncio.sleep(e.value)
-                    await send_text_to_topic(client=client, chat_id=settings.group_id,
-                                             topic_init_msg_id=settings.agent_group_id, text=text, kb=kb)
-                except Forbidden:
-                    logger.error("Бот не имеет прав писать в эту группу или был исключён.")
-                except Exception as e:
-                    logger.error("Ошибка при отправке:", e)
-            elif session.get('definition_id', "UNDEFINED") == 'operator':
+            if session.get('definition_id', "UNDEFINED") == 'operator':
+                topic_init_msg_id = settings.operator_group_id
                 logger.info(f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted operator")
-                target=""
-                count = await sesssion_store.pop_other(form.assigned_to) or 0
-                await sesssion_store.set_other(form.assigned_to, int(count)+1, xx=True)
-                for key, val in MODER_USERNAMES.items():
-                    if val == form.assigned_to:
-                        target = key
-                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", form.assigned_to).replace("{COUNT NOT ASSIGNED}", str(int(count)+1)))
+            header = (
+                f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"}) (нет решения)\n"
+                f"🧑‍💼 Роль: {form.role}\n"
+                f"📌 От: @{form.username or user.first_name} (id: {form.user_id})\n"
+                f"🕒 Создано: {form.created_at}\n\n"
+            )
+            content_text = format_content(form.content or {}, form_conv=form_conv)
+            text = header + "📋 Анкета:\n" + (content_text or "(пусто)")
+
+            kb = [
+                [
+                    InlineKeyboardButton("✅ Успешно", callback_data=f"form:{form.id}:accept"),
+                    InlineKeyboardButton("❌ Отклонено", callback_data=f"form:{form.id}:reject"),
+                ]
+            ]
+
+            try:
+                await send_text_to_topic(client=client, chat_id=settings.group_id,
+                                         topic_init_msg_id=topic_init_msg_id, text=text, kb=kb)
+            except FloodWait as e:
+                await asyncio.sleep(e.value)
+                await send_text_to_topic(client=client, chat_id=settings.group_id,
+                                         topic_init_msg_id=topic_init_msg_id, text=text, kb=kb)
+            except Forbidden:
+                logger.error("Бот не имеет прав писать в эту группу или был исключён.")
+            except Exception as e:
+                logger.error("Ошибка при отправке:", e)
+
             await safe_answer(callback)
             return None
         else:

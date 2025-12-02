@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Optional, List
 
 from pyrogram.types import InlineKeyboardButton
 
@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from pyrogram.raw import types as raw_types
 
+from ..services.staff_service import StaffService
 
 MOSCOW = ZoneInfo("Europe/Moscow")
 logger = logging.getLogger(__name__)
@@ -116,3 +117,39 @@ async def make_raw_reply_markup(kb: Sequence[Sequence[InlineKeyboardButton]]):
             raw_buttons.append(raw_types.KeyboardButtonCallback(text=btn.text, data=data))
         rows.append(raw_types.KeyboardButtonRow(buttons=raw_buttons))
     return raw_types.ReplyInlineMarkup(rows=rows)
+
+async def assign_master(staff_service: StaffService, role:str, user_id):
+    assigned = "NOT ASSIGNED"
+    staffs = await staff_service.get_staff(role="moderator", limit=False)
+    for staff_entry in staffs:
+        if role == "operator":
+            if staff_entry.operator_need:
+                assigned = staff_entry.username
+        elif role == "agent":
+            if staff_entry.agent_need:
+                assigned = staff_entry.username
+        else:
+            logger.error(f"sigma {user_id}: {assigned} staffs is not None")
+
+    if assigned == "NOT ASSIGNED":
+        if role == "operator":
+            await staff_service.update_form(find_role="moderator", operator_need=True)
+        elif role == "agent":
+            await staff_service.update_form(find_role="moderator", agent_need=True)
+        logger.info(f"empty sigma {user_id}: {assigned} recycle moderators")
+        staffs = await staff_service.get_staff(role="moderator", limit=False)
+        for staff_entry in staffs:
+            if role == "operator":
+                if staff_entry.operator_need:
+                    assigned = staff_entry.username
+            elif role == "agent":
+                if staff_entry.agent_need:
+                    assigned = staff_entry.username
+            else:
+                logger.error(f"sigma {user_id}: {assigned} staffs is not None")
+
+    if assigned == "NOT ASSIGNED":
+        logger.error(f"EMPTY sigma {user_id}: {assigned}")
+        assigned = None
+
+    return assigned

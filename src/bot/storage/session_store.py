@@ -7,6 +7,7 @@ import asyncio
 from typing import Optional
 
 import redis.asyncio as aioredis
+from redis.asyncio import Redis
 
 from ..config import settings
 import logging
@@ -16,7 +17,7 @@ class RedisSessionStore:
     def __init__(self, url: str):
         if not aioredis:
             raise RuntimeError('aioredis is required for RedisSessionStore')
-        self._redis = None
+        self._redis:Redis = None
         self.url = url
 
     async def connect(self):
@@ -55,7 +56,7 @@ class RedisSessionStore:
         logger.debug(f"redis set data: {json.dumps(value)}")
         await self._redis.set(f'session:{user_id}', json.dumps(value), ex=expire, nx=True)
 
-    async def set_other(self, key, value, nx:Optional[bool]=False, ex:int=60*30, xx:Optional[bool]=False):
+    async def set_other(self, key, value, nx:Optional[bool]=False, ex:int|None=60*30, xx:Optional[bool]=False):
         logger.info(f"redis set other {key}")
         logger.debug(f"redis set data: {value}")
         return await self._redis.set(key, value, ex=ex, nx=nx, xx=xx)

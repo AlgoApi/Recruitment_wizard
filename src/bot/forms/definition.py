@@ -78,3 +78,5 @@ agent_form = FormDefinition(
     ],
     page_size=2
 )
+
+FORMS = ['agent', 'operator']
