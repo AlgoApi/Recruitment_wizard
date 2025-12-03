@@ -432,7 +432,7 @@ async def run_wizard():
 
         msg_id = callback.message.id
 
-        key = f"processed:msg:{chat_id}:{msg_id}"
+        key = f"processed:msg:{chat_id}:{msg_id}:{callback.data}"
         ttl_seconds = 60 * 30
         got = await session_store.set_other(key, "1", nx=True, ex=ttl_seconds)
         if not got:
@@ -450,10 +450,6 @@ async def run_wizard():
             else:
                 logger.warning(f"{callback.from_user.username or callback.from_user.id} {callback.from_user.first_name} operator_form_conv NOT accept calllback")
 
-        goat = await session_store.pop_other(key)
-        if not goat:
-            logger.error("callback btn is not unlock %s:%s", chat_id, msg_id)
-            return False
         return None
 
     @app.on_message(filters.command("whoami") & mpg_fabric(logger, session_store))
