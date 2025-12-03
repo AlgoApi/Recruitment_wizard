@@ -47,7 +47,7 @@ async def run_wizard():
     logger.info("staff_service")
     staff_service = StaffService(AsyncSessionLocal)
     logger.info("form_service")
-    form_service = FormService(AsyncSessionLocal, staff_service)
+    form_service = FormService(AsyncSessionLocal)
     logger.info("user_service")
     user_service = UserService(AsyncSessionLocal)
 

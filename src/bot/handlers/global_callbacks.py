@@ -130,20 +130,21 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         await safe_send_to_user(client, user_id, text_to_user, reply_markup_v=kb)
 
         assigned = await assign_master(staff_service, form.role, user_id)
-        await form_service.update_form(form_id, status=False, assign=assigned)
+        await form_service.update_form(form_id, status=False, assign=assigned, cooldown=cooldown)
 
         try:
             await callback.answer(f"Заявка ❌ Отклонена", show_alert=True)
         except Exception:
             pass
 
+        existing_text = callback.message.text or ""
+        new_text = existing_text + f"\n\nПричина: {deny_key}" + f"\n🟦 Статус: ❌ Отклонена"
+        await callback.message.edit_text(new_text.replace("(нет решения)", f"({assigned})"))
         try:
-            existing_text = callback.message.text or ""
-            new_text = existing_text + f"\nПричина: {deny_key}"
-            await callback.message.edit_text(new_text)
             await callback.message.edit_reply_markup(None)
         except Exception:
-            logger.warning("global callback router deny_reason failed to edit message")
+            pass
+
         return True
     elif data_g.startswith('form:'):
         form_id = 0
@@ -179,44 +180,36 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
         role = (form.role or "").lower()
         assigned = form.assigned_to or ""
 
-        if new_status:
-            if role == "agent":
-                await staff_service.update_form(find_username=assigned, find_role="moderator", agent_need=False)
-            elif role == "operator":
-                await staff_service.update_form(find_username=assigned, find_role="moderator", operator_need=False)
-
-            try:
-                await callback.answer(f"Заявка {status_label}", show_alert=True)
-            except Exception:
-                pass
-        try:
-            existing_text = callback.message.text or ""
-            new_text = existing_text + f"\n\n🟦 Статус: {status_label}"
-            await callback.message.edit_text(new_text)
-            await callback.message.edit_reply_markup(None)
-        except Exception:
-            logger.warning("global callback router form: failed to edit message")
-
         user_id = form.user_id
 
         if role == "operator":
             logger.info(f"{user.username or user.id} {user.first_name} global callback router form {form.user_id}: interpreted role as operator")
             if not new_status:  # Отклонено
-                kb = [[]]
+                kb = []
                 i = 0
                 for k, v in operator_deny_reasons_text.items():
-                    kb[0].append(InlineKeyboardButton(f"❌ {k}", callback_data=f"deny_reason:{form.id}:{i}"))
+                    kb.append([InlineKeyboardButton(f"❌ {k}", callback_data=f"deny_reason:{form.id}:{i}")])
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:  # Успешно
                 assigned = await assign_master(staff_service, role, user_id)
+
+                existing_text = callback.message.text or ""
+                new_text = existing_text + f"\n\n🟦 Статус: {status_label}"
+                await callback.message.edit_text(new_text.replace("(нет решения)", f"({assigned})"))
+                try:
+                    await callback.message.edit_reply_markup(None)
+                except Exception:
+                    pass
+
+                await staff_service.update_form(find_username=assigned, find_role="moderator", operator_need=False)
                 await form_service.update_form(form_id, status=new_status, assign=assigned)
                 manager_ref = f"@{assigned}" if assigned else "(менеджер не назначен)"
                 target = ""
                 for key, val in MODER_USERNAMES.items():
                     if val == assigned:
                         target = key
-                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", assigned).replace("{CRED NOT ASSIGNED}", f"{form.user_id}:@{form.username}"))
+                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", assigned).replace("{CRED NOT ASSIGNED}", f"```{form.user_id}``` : ```{form.username}```"))
                 await safe_send_to_user(client, user_id, operator_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", manager_ref), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
             return True
 
@@ -224,14 +217,24 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
             logger.info(f"{user.username or user.id} {user.first_name} global callback router form {form.user_id}: interpreted role as agent")
             if not new_status:  # Отклонено
                 #
-                kb = [[]]
+                kb = []
                 i = 0
                 for k, v in agent_deny_reasons_text.items():
-                    kb[0].append(InlineKeyboardButton(f"❌ {k}", callback_data=f"deny_reason:{form.id}:{i}"))
+                    kb.append([InlineKeyboardButton(f"❌ {k}", callback_data=f"deny_reason:{form.id}:{i}")])
                     i += 1
                 await callback.message.edit_reply_markup(InlineKeyboardMarkup(kb))
             else:
                 assigned = await assign_master(staff_service, role, user_id)
+
+                existing_text = callback.message.text or ""
+                new_text = existing_text + f"\n\n🟦 Статус: {status_label}"
+                await callback.message.edit_text(new_text.replace("(нет решения)", f"({assigned})"))
+                try:
+                    await callback.message.edit_reply_markup(None)
+                except Exception:
+                    pass
+
+                await staff_service.update_form(find_username=assigned, find_role="moderator", agent_need=False)
                 await form_service.update_form(form_id, status=new_status, assign=assigned)
                 if assigned == MODER_USERNAMES.get("boobsmarley"):
                     text = agent_accept_nastavnik.replace("{ASSIGNED_TO NOT ASSIGNED}", "BoobsMarley")
