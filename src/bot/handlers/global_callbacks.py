@@ -1,4 +1,5 @@
 import asyncio
+import html
 import json
 
 from .callbacks import send_text_to_topic
@@ -209,7 +210,8 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 for key, val in MODER_USERNAMES.items():
                     if val == assigned:
                         target = key
-                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", assigned).replace("{CRED NOT ASSIGNED}", f"```{form.user_id}``` : ```{form.username}```"))
+                escaped_username = html.escape(form.username)
+                await client.send_message(chat_id=target, text=operator_new_anketa.replace("{ASSIGNED_TO NOT ASSIGNED}", assigned).replace("{CRED NOT ASSIGNED}", f"<pre>{user_id}</pre> : <pre>{escaped_username}</pre>"), parse_mode="html")
                 await safe_send_to_user(client, user_id, operator_accept.replace("{ASSIGNED_TO NOT ASSIGNED}", manager_ref), InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
             return True
 

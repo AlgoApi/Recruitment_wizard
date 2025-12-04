@@ -397,7 +397,7 @@ async def run_wizard():
         except Exception as e:
             logger.exception("get_chat failed")
             await message.reply_text(f"get_chat error: {e}")
-            return
+            return None
 
         # запросим первые 1..99
         ids = list(range(1, 100))
@@ -411,6 +411,7 @@ async def run_wizard():
             logger.info(
                 f"[{idx}] msg.chat.id = {calc_chat_id} msg.message_id = {m.id} from = {frm} text={m.text or m.caption}")
         logger.info(f"end chat history for {chat_id_p}")
+        return None
 
     @app.on_message(filters.private & ~filters.command(ALL_CMDS) & mpg_fabric(logger, session_store))
     async def catch_all(client: Client, message: Message):
