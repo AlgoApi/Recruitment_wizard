@@ -3,6 +3,8 @@ import asyncio
 import re
 from typing import Any, Dict, Optional
 
+logger = logging.getLogger(__name__)
+
 async def _extract_csrf_from_json(resp: aiohttp.ClientResponse) -> Optional[str]:
     try:
         data = await resp.json()
@@ -67,15 +69,18 @@ async def post_json_with_auth(
     while attempt < max_attempts:
         attempt += 1
         try:
+            logger.info(f"post_json_with_auth: try post {api_url} payload {payload}")
             async with session.post(api_url, json=payload, headers={"Accept":"application/json"}) as resp:
                 status = resp.status
                 text = await resp.text()
                 if 200 <= status < 300:
+                    logger.info(f"post_json_with_auth: success post {status} with response {text}")
                     try:
                         return await resp.json()
                     except Exception:
                         return {"status": status, "text": text}
                 if status == 401:
+                    logger.warning(f"post_json_with_auth: fail post {status} with response {text}, try auth")
                     if not (csrf_url and auth_url and username and password):
                         raise aiohttp.ClientResponseError(
                             resp.request_info, resp.history, status=resp.status,
@@ -83,6 +88,7 @@ async def post_json_with_auth(
                         )
                     csrf_token = await get_csrf_token(session, csrf_url)
                     auth_resp = await auth_with_csrf(session, auth_url, username, password, csrf_token=csrf_token)
+                    logger.info(f"post_json_with_auth: success auth {auth_resp.status} with response {auth_resp.text()}, try auth")
                     if auth_resp.status >= 400:
                         last_exc = aiohttp.ClientResponseError(
                             auth_resp.request_info, auth_resp.history, status=auth_resp.status,
