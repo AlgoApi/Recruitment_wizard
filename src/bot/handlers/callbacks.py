@@ -67,7 +67,7 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
         new_message = await callback.message.reply_text(wait_text.replace("{ROLE_NOT_ASSIGNED}", translate_role(role)))
         if session.get('menu_id'):
             try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
             except MessageIdInvalid:
                 pass
         session['menu_id'] = new_message.id
@@ -80,7 +80,7 @@ async def valid_start_role(client:Client, form_service: FormService, callback: C
         new_message = await callback.message.reply_text(cooldown_text + f"{expiry} минут")
         if session.get('menu_id'):
             try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
             except MessageIdInvalid:
                 pass
         session['menu_id'] = new_message.id
@@ -129,15 +129,15 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - cmd_start")
         if session.get('menu_id', None):
             try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
             except MessageIdInvalid:
                 pass
             except AttributeError:
                 try:
-                    await client.delete_messages(callback.message.sender_chat.id, session['menu_id'])
+                    await client.delete_messages(callback.message.sender_chat.id, session.get('menu_id', None))
                 except Exception:
                     try:
-                        await client.delete_messages(callback.message.from_user.id, session['menu_id'])
+                        await client.delete_messages(callback.message.from_user.id, session.get('menu_id', None))
                     except Exception:
                         pass
         if session.get('run', False):
@@ -154,7 +154,7 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
         logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - cmd_start_exec")
         if session.get('menu_id', None):
             try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
             except MessageIdInvalid:
                 pass
         await cmd_start(client, callback.message)
@@ -164,9 +164,9 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
     elif data.startswith("send_questions:") and form_conv.form_def.id == parts[1]:
         logger.info(f"{user.username or user.id} {user.first_name} callback router accept callback - send_questions")
         await form_conv._send_page(client, callback.message.chat.id, user.id)
-        if session['menu_id']:
+        if session.get('menu_id', None):
             try:
-                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
             except MessageIdInvalid:
                 pass
         await safe_answer(callback)
@@ -232,9 +232,9 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                             session["question"] += 1
                 session['page'] = page
 
-                if session['menu_id']:
+                if session.get('menu_id', None):
                     try:
-                        await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                        await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
                     except MessageIdInvalid:
                         pass
 
@@ -275,9 +275,9 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
                 else:
                     logger.info(f"{user.username or user.id} {user.first_name} callback router nav action prev")
                     if (session.get('page', 0) - 1) < 0:
-                        if session['menu_id']:
+                        if session.get('menu_id', None):
                             try:
-                                await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                                await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
                             except MessageIdInvalid:
                                 pass
                             await form_conv.start(client, callback)
@@ -305,9 +305,9 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             form = await form_service.create_draft(user.id, (user.username or user.first_name), session.get('definition_id', "UNDEFINED"), session.get('answers', {}))
             await form_service.submit_form(form)
             session = await sesssion_store.pop(user.id)
-            if session['menu_id']:
+            if session.get('menu_id', None):
                 try:
-                    await client.delete_messages(callback.message.chat.id, session['menu_id'])
+                    await client.delete_messages(callback.message.chat.id, session.get('menu_id', None))
                 except MessageIdInvalid:
                     pass
             role_txt = translate_role(session.get("definition_id", ""))

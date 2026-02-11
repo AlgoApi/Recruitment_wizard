@@ -19,3 +19,4 @@ redis~=6.4.0
 asyncmy
 requests~=2.32.5
 tenacity~=9.1.2
+aiohttp

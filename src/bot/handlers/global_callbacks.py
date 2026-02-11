@@ -232,7 +232,22 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
 
                 existing_text = callback.message.text or ""
                 new_text = existing_text + f"\n\n🟦 Статус: {status_label}"
-                await callback.message.edit_text(new_text.replace("(нет решения)", f"({assigned})"))
+                new_text = new_text.replace("(нет решения)", f"({assigned})")
+                target_crm = "drippineveryday"
+
+                if assigned == MODER_USERNAMES.get("boobsmarley"):
+                    client_text = agent_accept_nastavnik.replace("{ASSIGNED_TO NOT ASSIGNED}", "BoobsMarley")
+                    target_crm = "boobsmarley"
+                else:
+                    client_text = agent_accept
+
+                try:
+                    form_service.auto_save_agent_to_crm(form_id, target_crm)
+                except Exception as e:
+                    logger.error(f"{user.username or user.id} {user.first_name} auto_save_agent_to_crm failed: {e}")
+                    new_text = new_text+"\n❗Требуется завести данные в CRM вручную❗"
+
+                await callback.message.edit_text(new_text)
                 try:
                     await callback.message.edit_reply_markup(None)
                 except Exception:
@@ -240,39 +255,16 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
 
                 await staff_service.update_form(find_username=assigned, find_role="moderator", agent_need=False)
                 await form_service.update_form(form_id, status=new_status, assign=assigned)
-                if assigned == MODER_USERNAMES.get("boobsmarley"):
-                    text = agent_accept_nastavnik.replace("{ASSIGNED_TO NOT ASSIGNED}", "BoobsMarley")
-                else:
-                    text = agent_accept
-                await safe_send_to_user(client, user_id, text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
-            '''
-            DEPRECATED
-            else:  # Успешно: отправляем полную анкету назначенному менеджеру
-                if assigned:
-                    manager_target = f"@{assigned}"
-                    # формируем сообщение для менеджера: полная анкета + контакт
-                    manager_text = (
-                            f"Новая успешная заявка (#{form_id}) от @{form.username} (id:{user_id}).\n\n"
-                            "📋 Анкета:\n" + format_content(form.content or {})
-                    )
-                    sent_ok = False
+                for k, v in MODER_USERNAMES.items():
+                    if v == assigned:
+                        try:
+                            await safe_send_to_user(client, k, new_text)
+                        except Exception:
+                            logger.error(f"{user.username or user.id} {user.first_name} global callback router form {role} {form.user_id} accepted, but cannot send info to assigned admin")
+                        break
 
-                    try:
-                        await client.send_message(chat_id=manager_target, text=manager_text)
-                        sent_ok = True
-                    except Exception:
-                        sent_ok = False
+                await safe_send_to_user(client, user_id, client_text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Не могу написать", callback_data=f"trouble:{form.id}")]]))
 
-                    if sent_ok:
-                        await safe_send_to_user(user_id,
-                                                "Ваша заявка одобрена — менеджер получил анкету и свяжется с вами.")
-                    else:
-                        await callback.message.reply(f'НЕ УДАЛОСЬ ОТПРАВИТЬ АНКЕТУ МЕНЕДЖЕРУ {manager_target}!!')
-                else:
-                    await callback.message.reply('МЕНЕДЖЕР НЕ НАЗНАЧЕН, АНКЕТА НЕ ОТПРАВЛЕНА МЕНЕДЖЕРУ!!')
-                await safe_send_to_user(user_id,
-                                        "Ваша заявка одобрена — менеджер получил анкету и свяжется с вами.")
-            '''
             return True
         else:
             logger.error(f"{user.username or user.id} {user.first_name} global callback router reject: 404")

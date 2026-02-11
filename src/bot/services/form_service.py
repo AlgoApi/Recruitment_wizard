@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-
+from phonenumbers import region_code_for_number
 from sqlalchemy import select, update, text, desc
 from sqlalchemy.engine import Result, ScalarResult
 
@@ -11,6 +11,9 @@ from .staff_service import StaffService
 from ..models.db import DBManager
 from ..models.form import FormModel, StaffModel
 from ..utils.utils import ensure_aware_utc, remaining_seconds_moscow
+from ..config import settings
+from http_session_service import SessionManager
+from crm_service import post_json_with_auth
 
 logger = logging.getLogger(__name__)
 
@@ -254,5 +257,60 @@ class FormService:
         res = await asyncio.gather(_exec_and_format())
 
         return res
+
+    async def auto_save_agent_to_crm(self, form_id: int, target_crm: str) -> dict:
+        logger.info(f"Auto save to crm: {form_id}")
+        logger.debug(f"Auto save to crm {form_id}: content: {content}")
+
+        async def work():
+            async with self.db.session() as session:
+                async with session.begin():
+                    stmt = select(FormModel).where(FormModel.id == form_id)
+                    res = await session.execute(stmt)
+                    item = res.scalars().first()
+                    if item is None:
+                        return {}
+                    item = item.get("content", {})
+                    number = item.get("phone", "")
+                    if "+" not in number:
+                        number = "+"+number
+                    phone = phonenumbers.parse(number)
+                    phone_country = region_code_for_number(phone)
+
+                    return {
+                        "category": 1,
+                        "name": item.get("first_name", None),
+                        "birth_date": item.get("birthday", None),
+                        "number": number,
+                        "phone_country": phone_country.lower(),
+                        "telegram": item.get("tg", None)
+                    }
+
+        payload = await self.db.run(work, retries=3)
+        for k, v in payload.items():
+            if v is None:
+                logger.warning(f"Auto save to crm: payload issue: data for key {k} is None")
+                raise RuntimeError(f"Auto save to crm: payload issue: data for key {k} is None")
+
+        username_target_crm = getattr(settings, f"crm_{target_crm}_login", None)
+        password_target_crm = getattr(settings, f"crm_{target_crm}_password", None)
+        if username_target_crm is None or password_target_crm is None:
+            logger.warning(f"Auto save to crm: credentials issue: crm_{target_crm}_password or crm_{target_crm}_login is None")
+            raise RuntimeError(f"Auto save to crm: credentials issue: crm_{target_crm}_password or crm_{target_crm}_login is None")
+
+        session_http = await SessionManager.get_session()
+
+        result = await post_json_with_auth(
+            session_http,
+            settings.crm_agent_api_url,
+            payload,
+            csrf_url=settings.crm_csrf_url,
+            auth_url=settings.crm_auth_url,
+            username=username_target_crm,
+            password=password_target_crm,
+            max_attempts=3
+        )
+
+        return result
 
 logger.info("Hexmaster IMPORTED")

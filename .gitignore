@@ -224,3 +224,5 @@ deploy_and_restart.log
 /BACKUP-dist
 /alembic
 alembic.ini
+dist.bak
+.idea/

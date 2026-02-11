@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     agent_group_id: int
     operator_group_id: int
     channel_id: str
+    crm_agent_api_url: str
+    crm_csrf_url: str
+    crm_auth_url: str
+    crm_boobsmarley_login: str
+    crm_boobsmarley_password: str
 
 field_names = list(Settings.model_fields.keys())
 
