@@ -270,7 +270,7 @@ class FormService:
                     if item is None:
                         return {}
                     item = getattr(item, "content", {})
-                    logger.info(f"Auto save to crm {form_id}: content: {content}")
+                    logger.info(f"Auto save to crm {form_id}: content: {item}")
                     number = item.get("phone", "")
                     if "+" not in number:
                         number = "+"+number
