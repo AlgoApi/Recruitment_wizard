@@ -16,18 +16,17 @@ async def _extract_csrf_from_json(resp: aiohttp.ClientResponse) -> Optional[str]
     return None
 
 def debug_print_response_cookies(resp):
-    logger.info("post_json_with_auth: resp.status =", resp.status)
-    logger.info("post_json_with_auth: Set-Cookie headers:", resp.headers.getall("Set-Cookie", []))
+    logger.info(f"post_json_with_auth: resp.status={resp.status}")
+    logger.info(f"post_json_with_auth: Set-Cookie headers:{resp.headers.getall("Set-Cookie", [])}")
     for name, morsel in resp.cookies.items():
-        logger.info("post_json_with_auth: resp.cookies:", name, morsel.value, "->", dict(morsel))
+        logger.info(f"post_json_with_auth: resp.cookies:{name} {morsel.value} -> {dict(morsel)}")
 
 def debug_print_session_cookies(session, url):
     jar = session.cookie_jar
     cookies = jar.filter_cookies(url)
-    logger.info("post_json_with_auth: Session cookies for", url)
+    logger.info(f"post_json_with_auth: Session cookies for {url}")
     for name, cookie in cookies.items():
-        logger.info("post_json_with_auth:   ", name, cookie.value, " domain:", cookie['domain'], " path:", cookie['path'],
-              " secure:", cookie['secure'], " httponly:", cookie['httponly'])
+        logger.info(f"post_json_with_auth: {name} {cookie.value} domain: {cookie['domain']} path: {cookie['path']} secure: {cookie['secure']} httponly:{cookie['httponly']}")
 
 async def get_csrf_token(session: aiohttp.ClientSession, csrf_url: str) -> Optional[str]:
     async with session.get(csrf_url) as resp:
