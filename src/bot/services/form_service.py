@@ -276,6 +276,9 @@ class FormService:
                         number = "+"+number
                     phone = phonenumbers.parse(number)
                     phone_country = region_code_for_number(phone)
+                    tg_username = item.get("tg", None)
+                    if tg_username[0] == '@':
+                        tg_username = tg_username[1:]
 
                     return {
                         "category": 1,
@@ -283,7 +286,7 @@ class FormService:
                         "birth_date": item.get("birthday", None),
                         "number": number,
                         "phone_country": phone_country.lower(),
-                        "telegram": item.get("tg", None)
+                        "telegram": tg_username
                     }
 
         payload = await self.db.run(work, retries=3)
