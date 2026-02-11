@@ -12,8 +12,8 @@ from ..models.db import DBManager
 from ..models.form import FormModel, StaffModel
 from ..utils.utils import ensure_aware_utc, remaining_seconds_moscow
 from ..config import settings
-from http_session_service import SessionManager
-from crm_service import post_json_with_auth
+from .http_session_service import SessionManager
+from .crm_service import post_json_with_auth
 
 logger = logging.getLogger(__name__)
 
