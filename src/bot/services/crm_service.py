@@ -49,11 +49,12 @@ async def auth_with_csrf(
     csrf_field_name: str = "csrfToken",
     extra_form: Optional[Dict[str, str]] = None,
     headers: Optional[Dict[str, str]] = None,
+    base_url: str = "https://huntmecrm.com",
 ) -> aiohttp.ClientResponse:
     req_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Origin": base_url,
-        "Referer": f"{base_url}/login",  # Или страница, откуда идет логин
+        "Referer": f"{base_url}/login",
         "Accept": "*/*",
         "X-Requested-With": "XMLHttpRequest"  # Иногда требуется для JSON ответов
     }
