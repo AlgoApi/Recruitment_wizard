@@ -50,11 +50,21 @@ async def auth_with_csrf(
     extra_form: Optional[Dict[str, str]] = None,
     headers: Optional[Dict[str, str]] = None,
 ) -> aiohttp.ClientResponse:
+    req_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Origin": base_url,
+        "Referer": f"{base_url}/login",  # Или страница, откуда идет логин
+        "Accept": "*/*",
+        "X-Requested-With": "XMLHttpRequest"  # Иногда требуется для JSON ответов
+    }
+    if headers:
+        req_headers.update(headers)
     form = {
         "username": username,
         "password": password,
         "callbackUrl": "https://huntmecrm.com/login",
-        "redirect": False
+        "redirect": "false",
+        "json": "true"
     }
     if extra_form:
         form.update(extra_form)
@@ -63,9 +73,10 @@ async def auth_with_csrf(
         form[csrf_field_name] = csrf_token
 
     logger.info(f"auth_with_csrf: try auth with form: {form}")
-    async with session.post(auth_url, data=form) as resp:
+    async with session.post(auth_url, data=form, headers=req_headers) as resp:
         await resp.text()
-        debug_print_response_cookies(resp)
+        session_cookies = [name for name, _ in resp.cookies.items()]
+        logger.info(f"auth_with_csrf received cookies: {session_cookies}")
 
         if resp.cookies:
             cookie_dict = {name: morsel.value for name, morsel in resp.cookies.items()}
