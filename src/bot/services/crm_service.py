@@ -3,6 +3,7 @@ import asyncio
 import re
 from typing import Any, Dict, Optional
 import logging
+from yarl import URL
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,8 @@ async def auth_with_csrf(
     form = {
         "username": username,
         "password": password,
+        "callbackUrl": "https://huntmecrm.com/login",
+        "redirect": False
     }
     if extra_form:
         form.update(extra_form)
@@ -59,17 +62,14 @@ async def auth_with_csrf(
     if csrf_token:
         form[csrf_field_name] = csrf_token
 
-    req_headers = headers.copy() if headers else {}
-    if csrf_token:
-        req_headers.setdefault("X-CSRFToken", csrf_token)
-        req_headers.setdefault("X-XSRF-TOKEN", csrf_token)
+    logger.info(f"auth_with_csrf: try auth with form: {form}")
     async with session.post(auth_url, data=form, headers=req_headers) as resp:
         await resp.text()
         debug_print_response_cookies(resp)
 
         if resp.cookies:
             cookie_dict = {name: morsel.value for name, morsel in resp.cookies.items()}
-            session.cookie_jar.update_cookies(cookie_dict, response_url=auth_url)
+            session.cookie_jar.update_cookies(cookie_dict, response_url=URL(auth_url))
         return resp
 
 async def post_json_with_auth(
@@ -108,7 +108,7 @@ async def post_json_with_auth(
                     csrf_token = await get_csrf_token(session, csrf_url)
                     auth_resp = await auth_with_csrf(session, auth_url, username, password, csrf_token=csrf_token)
                     auth_resp_text = await auth_resp.text()
-                    logger.info(f"post_json_with_auth: success auth {auth_resp.status} with response {auth_resp_text[:20]}, try auth")
+                    logger.info(f"post_json_with_auth: success auth {auth_resp.status} with response {auth_resp_text[:20]}")
                     debug_print_session_cookies(session, api_url)
                     if auth_resp.status >= 400:
                         last_exc = aiohttp.ClientResponseError(
