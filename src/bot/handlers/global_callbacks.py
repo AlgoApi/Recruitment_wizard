@@ -245,7 +245,7 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     form_service.auto_save_agent_to_crm(form_id, target_crm)
                 except Exception as e:
                     logger.error(f"{user.username or user.id} {user.first_name} auto_save_agent_to_crm failed: {e}")
-                    new_text = new_text+"\n❗Требуется завести данные в CRM вручную❗"
+                    new_text = new_text+f"\n❗Требуется завести данные в CRM вручную❗\n Причина: {e}"
 
                 await callback.message.edit_text(new_text)
                 try:
