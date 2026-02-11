@@ -240,12 +240,14 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                     target_crm = "boobsmarley"
                 else:
                     client_text = agent_accept
-
+                auto_save_result = "UNDEFINED"
                 try:
-                    form_service.auto_save_agent_to_crm(form_id, target_crm)
+                    auto_save_result = await form_service.auto_save_agent_to_crm(form_id, target_crm)
                 except Exception as e:
                     logger.error(f"{user.username or user.id} {user.first_name} auto_save_agent_to_crm failed: {e}")
                     new_text = new_text+f"\n❗Требуется завести данные в CRM вручную❗\n Причина: {e}"
+
+                logger.info(f"Auto save to crm complited: {auto_save_result}")
 
                 await callback.message.edit_text(new_text)
                 try:
