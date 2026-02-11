@@ -63,7 +63,7 @@ async def auth_with_csrf(
         form[csrf_field_name] = csrf_token
 
     logger.info(f"auth_with_csrf: try auth with form: {form}")
-    async with session.post(auth_url, data=form, headers=req_headers) as resp:
+    async with session.post(auth_url, data=form) as resp:
         await resp.text()
         debug_print_response_cookies(resp)
 
