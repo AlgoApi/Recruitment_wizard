@@ -52,32 +52,42 @@ async def auth_with_csrf(
     base_url: str = "https://huntmecrm.com",
 ) -> aiohttp.ClientResponse:
     req_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Origin": base_url,
-        "Referer": f"{base_url}/login",
-        "Accept": "*/*",
-        "X-Requested-With": "XMLHttpRequest"  # Иногда требуется для JSON ответов
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "max-age=0",
+        "Connection": "keep-alive",
+        "Origin": "https://huntmecrm.com",
+        "Referer": "https://huntmecrm.com/login",
+        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     }
-    if headers:
-        req_headers.update(headers)
+
     form = {
         "username": username,
         "password": password,
         "callbackUrl": "https://huntmecrm.com/login",
         "redirect": "false",
+        "csrfToken": csrf_token,
         "json": "true"
     }
+
+    if headers:
+        req_headers.update(headers)
     if extra_form:
         form.update(extra_form)
-
-    if csrf_token:
-        form[csrf_field_name] = csrf_token
 
     logger.info(f"auth_with_csrf: try auth with form: {form}")
     async with session.post(auth_url, data=form, headers=req_headers) as resp:
         await resp.text()
         session_cookies = [name for name, _ in resp.cookies.items()]
         logger.info(f"auth_with_csrf received cookies: {session_cookies}")
+        cookies = session.cookie_jar.filter_cookies(auth_url)
+        has_session = any("session-token" in name for name in cookies.keys())
+
+        if not has_session:
+            logger.error("auth fail")
+        else:
+            logger.info("auth success")
 
         if resp.cookies:
             cookie_dict = {name: morsel.value for name, morsel in resp.cookies.items()}
