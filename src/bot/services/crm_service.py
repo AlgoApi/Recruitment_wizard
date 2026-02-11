@@ -107,7 +107,8 @@ async def post_json_with_auth(
                         )
                     csrf_token = await get_csrf_token(session, csrf_url)
                     auth_resp = await auth_with_csrf(session, auth_url, username, password, csrf_token=csrf_token)
-                    logger.info(f"post_json_with_auth: success auth {auth_resp.status} with response {await auth_resp.text()[:20]}, try auth")
+                    auth_resp_text = await auth_resp.text()
+                    logger.info(f"post_json_with_auth: success auth {auth_resp.status} with response {auth_resp_text[:20]}, try auth")
                     debug_print_session_cookies(session, api_url)
                     if auth_resp.status >= 400:
                         last_exc = aiohttp.ClientResponseError(
