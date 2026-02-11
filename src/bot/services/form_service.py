@@ -260,7 +260,6 @@ class FormService:
 
     async def auto_save_agent_to_crm(self, form_id: int, target_crm: str) -> dict:
         logger.info(f"Auto save to crm: {form_id}")
-        logger.debug(f"Auto save to crm {form_id}: content: {content}")
 
         async def work():
             async with self.db.session() as session:
@@ -271,6 +270,7 @@ class FormService:
                     if item is None:
                         return {}
                     item = item.get("content", {})
+                    logger.info(f"Auto save to crm {form_id}: content: {content}")
                     number = item.get("phone", "")
                     if "+" not in number:
                         number = "+"+number
