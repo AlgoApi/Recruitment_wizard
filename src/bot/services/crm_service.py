@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import re
 from typing import Any, Dict, Optional
+import logging
 
 logger = logging.getLogger(__name__)
 
