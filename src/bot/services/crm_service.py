@@ -15,6 +15,20 @@ async def _extract_csrf_from_json(resp: aiohttp.ClientResponse) -> Optional[str]
         return None
     return None
 
+def debug_print_response_cookies(resp):
+    logger.info("post_json_with_auth: resp.status =", resp.status)
+    logger.info("post_json_with_auth: Set-Cookie headers:", resp.headers.getall("Set-Cookie", []))
+    for name, morsel in resp.cookies.items():
+        logger.info("post_json_with_auth: resp.cookies:", name, morsel.value, "->", dict(morsel))
+
+def debug_print_session_cookies(session, url):
+    jar = session.cookie_jar
+    cookies = jar.filter_cookies(url)
+    logger.info("post_json_with_auth: Session cookies for", url)
+    for name, cookie in cookies.items():
+        logger.info("post_json_with_auth:   ", name, cookie.value, " domain:", cookie['domain'], " path:", cookie['path'],
+              " secure:", cookie['secure'], " httponly:", cookie['httponly'])
+
 async def get_csrf_token(session: aiohttp.ClientSession, csrf_url: str) -> Optional[str]:
     async with session.get(csrf_url) as resp:
         if resp.status != 200:
@@ -52,6 +66,11 @@ async def auth_with_csrf(
         req_headers.setdefault("X-XSRF-TOKEN", csrf_token)
     async with session.post(auth_url, data=form, headers=req_headers) as resp:
         await resp.text()
+        debug_print_response_cookies(resp)
+
+        if resp.cookies:
+            cookie_dict = {name: morsel.value for name, morsel in resp.cookies.items()}
+            session.cookie_jar.update_cookies(cookie_dict, response_url=auth_url)
         return resp
 
 async def post_json_with_auth(
@@ -75,13 +94,13 @@ async def post_json_with_auth(
                 status = resp.status
                 text = await resp.text()
                 if 200 <= status < 300:
-                    logger.info(f"post_json_with_auth: success post {status} with response {text}")
+                    logger.info(f"post_json_with_auth: success post {status} with response {text[:20]}")
                     try:
                         return await resp.json()
                     except Exception:
                         return {"status": status, "text": text}
                 if status == 401:
-                    logger.warning(f"post_json_with_auth: fail post {status} with response {text}, try auth")
+                    logger.warning(f"post_json_with_auth: fail post {status} with response {text[:20]}, try auth")
                     if not (csrf_url and auth_url and username and password):
                         raise aiohttp.ClientResponseError(
                             resp.request_info, resp.history, status=resp.status,
@@ -89,7 +108,8 @@ async def post_json_with_auth(
                         )
                     csrf_token = await get_csrf_token(session, csrf_url)
                     auth_resp = await auth_with_csrf(session, auth_url, username, password, csrf_token=csrf_token)
-                    logger.info(f"post_json_with_auth: success auth {auth_resp.status} with response {await auth_resp.text()}, try auth")
+                    logger.info(f"post_json_with_auth: success auth {auth_resp.status} with response {await auth_resp.text()[:20]}, try auth")
+                    debug_print_session_cookies(session, api_url)
                     if auth_resp.status >= 400:
                         last_exc = aiohttp.ClientResponseError(
                             auth_resp.request_info, auth_resp.history, status=auth_resp.status,
