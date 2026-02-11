@@ -6,6 +6,7 @@ from typing import Optional
 from phonenumbers import region_code_for_number
 from sqlalchemy import select, update, text, desc
 from sqlalchemy.engine import Result, ScalarResult
+import phonenumbers
 
 from .staff_service import StaffService
 from ..models.db import DBManager
