@@ -51,6 +51,9 @@ async def auth_with_csrf(
     headers: Optional[Dict[str, str]] = None,
     base_url: str = "https://huntmecrm.com",
 ) -> aiohttp.ClientResponse:
+    current_cookies = session.cookie_jar.filter_cookies(auth_url)
+
+    cookie_header = "; ".join([f"{k}={v.value}" for k, v in current_cookies.items()])
     req_headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -59,7 +62,8 @@ async def auth_with_csrf(
         "Origin": "https://huntmecrm.com",
         "Referer": "https://huntmecrm.com/login",
         "Upgrade-Insecure-Requests": "1",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Cookie": cookie_header
     }
 
     form = {
@@ -81,7 +85,13 @@ async def auth_with_csrf(
         await resp.text()
         session_cookies = [name for name, _ in resp.cookies.items()]
         logger.info(f"auth_with_csrf received cookies: {session_cookies}")
+        set_cookie = resp.headers.getall("Set-Cookie", [])
+        logger.info(f"Auth response headers Set-Cookie: {set_cookie}")
         cookies = session.cookie_jar.filter_cookies(auth_url)
+        for cookie_str in set_cookie:
+            if "session-token" in cookie_str:
+                session.cookie_jar.update_cookies(resp.cookies, response_url=URL(auth_url))
+                logger.info("Session token manually updated in Jar")
         has_session = any("session-token" in name for name in cookies.keys())
 
         if not has_session:

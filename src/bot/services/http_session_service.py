@@ -10,6 +10,10 @@ class SessionManager:
     async def get_session(cls) -> aiohttp.ClientSession:
         if cls._session is None or cls._session.closed:
             cls._session = aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(), timeout=_default_timeout)
+        cls._session = aiohttp.ClientSession(
+            cookie_jar=aiohttp.CookieJar(unsafe=True),
+            timeout=_default_timeout
+        )
         return cls._session
 
     @classmethod
