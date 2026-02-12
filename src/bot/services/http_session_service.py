@@ -4,7 +4,7 @@ from typing import Optional, Dict
 _default_timeout = aiohttp.ClientTimeout(total=30)
 
 class SessionManager:
-    _session: Optional[Dict[str, aiohttp.ClientSession]] = None
+    _session: Dict[str, aiohttp.ClientSession] = dict()
 
     @classmethod
     async def get_session(cls, target) -> aiohttp.ClientSession:
