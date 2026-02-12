@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     crm_auth_url: str
     crm_boobsmarley_login: str
     crm_boobsmarley_password: str
+    crm_drippineveryday_login: str
+    crm_drippineveryday_password: str
 
 field_names = list(Settings.model_fields.keys())
 
