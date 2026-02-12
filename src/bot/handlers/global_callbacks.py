@@ -243,6 +243,9 @@ async def callback_global_router(client: Client, callback: CallbackQuery, form_s
                 auto_save_result = "UNDEFINED"
                 try:
                     auto_save_result = await form_service.auto_save_agent_to_crm(form_id, target_crm)
+                except aiohttp.ClientResponseError as e:
+                    logger.warning(f"{user.username or user.id} {user.first_name} auto_save_agent_to_crm failed: {e.status}")
+                    new_text = new_text + f"\n❗Требуется завести данные в CRM вручную❗\n Причина: {e}"
                 except Exception as e:
                     logger.error(f"{user.username or user.id} {user.first_name} auto_save_agent_to_crm failed: {e}")
                     new_text = new_text+f"\n❗Требуется завести данные в CRM вручную❗\n Причина: {e}"
