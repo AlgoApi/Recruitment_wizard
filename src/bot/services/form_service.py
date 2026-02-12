@@ -274,7 +274,9 @@ class FormService:
                     logger.info(f"Auto save to crm {form_id}: content: {item}")
                     number = item.get("phone", "")
                     if "8" == number[0]:
-                        number[0] = '7'
+                        number = '7'+number[1:]
+                    elif "8" == number[1] and "+" == number[0]:
+                        number = "+7" + number[2:]
                     if "+" != number[0]:
                         number = "+"+number
                     phone = phonenumbers.parse(number)
