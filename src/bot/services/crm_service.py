@@ -89,7 +89,7 @@ async def auth_with_csrf(
     if extra_form:
         form.update(extra_form)
 
-    logger.info(f"auth_with_csrf: sending POST to {auth_url} with headers {req_headers}")
+    logger.info(f"auth_with_csrf: sending POST to {auth_url} with headers {req_headers} with form {form}")
     async with session.post(auth_url, data=form, headers=req_headers, allow_redirects=False) as resp:
         recive = await resp.text()
         logger.info(f"auth_with_csrf {recive} and {resp.status}")
