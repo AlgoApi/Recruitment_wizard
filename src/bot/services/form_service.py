@@ -273,7 +273,9 @@ class FormService:
                     item = getattr(item, "content", {})
                     logger.info(f"Auto save to crm {form_id}: content: {item}")
                     number = item.get("phone", "")
-                    if "+" not in number:
+                    if "8" == number[0]:
+                        number[0] = '7'
+                    if "+" != number[0]:
                         number = "+"+number
                     phone = phonenumbers.parse(number)
                     phone_country = region_code_for_number(phone)

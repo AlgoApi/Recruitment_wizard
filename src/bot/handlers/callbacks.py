@@ -349,7 +349,8 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             except Forbidden:
                 logger.error("Бот не имеет прав писать в эту группу или был исключён.")
             except Exception as e:
-                logger.error("Ошибка при отправке:", e)
+                logger.error(f"Ошибка при отправке: {e}")
+
 
             await safe_answer(callback)
             return None
