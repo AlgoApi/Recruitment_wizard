@@ -51,9 +51,6 @@ async def auth_with_csrf(
     headers: Optional[Dict[str, str]] = None,
     base_url: str = "https://huntmecrm.com",
 ) -> aiohttp.ClientResponse:
-    current_cookies = session.cookie_jar.filter_cookies(auth_url)
-
-    cookie_header = "; ".join([f"{k}={v.value}" for k, v in current_cookies.items()])
     req_headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -63,8 +60,20 @@ async def auth_with_csrf(
         "Referer": "https://huntmecrm.com/login",
         "Upgrade-Insecure-Requests": "1",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Cookie": cookie_header
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded"
     }
+
+    try:
+        all_cookies = session.cookie_jar.filter_cookies(URL(auth_url))
+        if all_cookies:
+            cookie_header_str = "; ".join([f"{k}={v.value}" for k, v in all_cookies.items()])
+            req_headers["Cookie"] = cookie_header_str
+            logger.info(f"auth_with_csrf: Manually forcing Cookie header: {cookie_header_str}")
+        else:
+            logger.warning("auth_with_csrf: No cookies found in jar to force!")
+    except Exception as e:
+        logger.error(f"auth_with_csrf: Error forming cookie header: {e}")
 
     form = {
         "username": username,
@@ -80,9 +89,10 @@ async def auth_with_csrf(
     if extra_form:
         form.update(extra_form)
 
-    logger.info(f"auth_with_csrf: try auth with form: {form}")
+    logger.info(f"auth_with_csrf: sending POST to {auth_url} with headers {req_headers}")
     async with session.post(auth_url, data=form, headers=req_headers) as resp:
-        await resp.text()
+        recive = await resp.text()
+        logger.info(f"auth_with_csrf {recive} and {resp.status}")
         session_cookies = [name for name, _ in resp.cookies.items()]
         logger.info(f"auth_with_csrf received cookies: {session_cookies}")
         set_cookie = resp.headers.getall("Set-Cookie", [])
@@ -98,10 +108,8 @@ async def auth_with_csrf(
             logger.error("auth fail")
         else:
             logger.info("auth success")
+            session.cookie_jar.update_cookies(resp.cookies, response_url=URL(auth_url))
 
-        if resp.cookies:
-            cookie_dict = {name: morsel.value for name, morsel in resp.cookies.items()}
-            session.cookie_jar.update_cookies(cookie_dict, response_url=URL(auth_url))
         return resp
 
 async def post_json_with_auth(
