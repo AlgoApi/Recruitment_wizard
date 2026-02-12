@@ -217,5 +217,12 @@ src/res
 __pycache__
 Dockerfile
 entrypoint.sh
-
+deploy.sh
+deploy_and_restart.log
 /dist
+/testtg
+/BACKUP-dist
+/alembic
+alembic.ini
+dist.bak
+.idea/

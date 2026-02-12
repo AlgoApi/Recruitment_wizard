@@ -49,7 +49,7 @@ class FormDefinition:
 operator_form = FormDefinition(
     id='operator',
     title=operator_desc + "\n",
-    video=None,
+    video="BAACAgIAAxkBAAIIJWka8OTuhI2Q6s8YYkC13-_O7ZFsAAK2gAACzjfZSA50hPXxnbOHHgQ",
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)], photo="AgACAgIAAxkBAAPVaQYxwVaJ6qp-EjNaCwvLIr6FNdkAAtsGMhsrzDBIxgABxFKncqyAAAgBAAMCAAN5AAceBA"),
         Field(key='last_name', label='Фамилия', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=3)]),
@@ -78,3 +78,5 @@ agent_form = FormDefinition(
     ],
     page_size=2
 )
+
+FORMS = ['agent', 'operator']
