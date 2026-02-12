@@ -75,7 +75,7 @@ async def auth_with_csrf(
         logger.error(f"auth_with_csrf: Error forming cookie header: {e}")
 
     form = {
-        "username": username,
+        "login": username,
         "password": password,
         "callbackUrl": "https://huntmecrm.com/login",
         "redirect": "false",
@@ -88,14 +88,10 @@ async def auth_with_csrf(
     if extra_form:
         form.update(extra_form)
 
-    logger.info(f"auth_with_csrf: sending POST to {auth_url} with headers {req_headers} with form {form}")
+    logger.info(f"auth_with_csrf: sending POST")
     async with session.post(auth_url, data=form, headers=req_headers, allow_redirects=False) as resp:
         recive = await resp.text()
-        logger.info(f"auth_with_csrf {recive} and {resp.status}")
-        session_cookies = [name for name, _ in resp.cookies.items()]
-        logger.info(f"auth_with_csrf received cookies: {session_cookies}")
         set_cookie = resp.headers.getall("Set-Cookie", [])
-        logger.info(f"Auth response headers Set-Cookie: {set_cookie}")
         cookies = session.cookie_jar.filter_cookies(auth_url)
         for cookie_str in set_cookie:
             if "session-token" in cookie_str:
