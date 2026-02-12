@@ -90,7 +90,7 @@ async def auth_with_csrf(
         form.update(extra_form)
 
     logger.info(f"auth_with_csrf: sending POST to {auth_url} with headers {req_headers}")
-    async with session.post(auth_url, data=form, headers=req_headers) as resp:
+    async with session.post(auth_url, data=form, headers=req_headers, allow_redirects=False) as resp:
         recive = await resp.text()
         logger.info(f"auth_with_csrf {recive} and {resp.status}")
         session_cookies = [name for name, _ in resp.cookies.items()]
@@ -105,7 +105,16 @@ async def auth_with_csrf(
         has_session = any("session-token" in name for name in cookies.keys())
 
         if not has_session:
-            logger.error("auth fail")
+            if resp.status == 302 or resp.status == 303:
+                location = resp.headers.get('Location', '')
+                if 'error' in location:
+                    logger.error(f"auth_with_csrf: Login FAILED. Redirected to error: {location}")
+                else:
+                    logger.warning(f"auth_with_csrf: Redirected to {location} but no session cookie found.")
+            elif resp.status == 401:
+                logger.error("auth_with_csrf: 401 Unauthorized (Credentials incorrect?)")
+            else:
+                logger.error(f"auth_with_csrf: Unexpected status {resp.status}. Response: {text[:200]}")
         else:
             logger.info("auth success")
             session.cookie_jar.update_cookies(resp.cookies, response_url=URL(auth_url))
