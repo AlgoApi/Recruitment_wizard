@@ -301,8 +301,27 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             await callback.answer()
             return None
         elif data == 'submit:confirm':
+            answers = session.get('answers', {})
+            for field in form_conv.form_def.fields:
+                if not answers.get(field.key):
+                    logger.info(
+                        f"{user.username or user.id} {user.first_name} callback router rejected submit:confirm "
+                        f"interpreted agent because not all fields are filled in")
+                    await callback.message.reply(
+                        "Анкета не заполнена полностью, пожалуйста продолжите заполнять анкету.\nПроверьте чтобы все страницы анкеты были заполнены 🤝")
+                    await safe_answer(callback)
+                    return None
+            topic_init_msg_id = 1
+            if session.get('definition_id', "UNDEFINED") == 'agent':
+                topic_init_msg_id = settings.agent_group_id
+                logger.info(
+                    f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted agent")
+            if session.get('definition_id', "UNDEFINED") == 'operator':
+                topic_init_msg_id = settings.operator_group_id
+                logger.info(
+                    f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted operator")
             logger.info(f"{user.username or user.id} {user.first_name} callback router accept submit:confirm")
-            form = await form_service.create_draft(user.id, (user.username or user.first_name), session.get('definition_id', "UNDEFINED"), session.get('answers', {}))
+            form = await form_service.create_draft(user.id, (user.username or user.first_name), session.get('definition_id', "UNDEFINED"), answers)
             await form_service.submit_form(form)
             session = await sesssion_store.pop(user.id)
             if session.get('menu_id', None):
@@ -316,13 +335,6 @@ async def callback_router(client: Client, callback: CallbackQuery, sesssion_stor
             session['menu_id'] = new_message.id
             await sesssion_store.set_overwrite(user.id, session)
             #await cmd_start(client, callback.message)
-            topic_init_msg_id = 1
-            if session.get('definition_id', "UNDEFINED") == 'agent':
-                topic_init_msg_id = settings.agent_group_id
-                logger.info(f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted agent")
-            if session.get('definition_id', "UNDEFINED") == 'operator':
-                topic_init_msg_id = settings.operator_group_id
-                logger.info(f"{user.username or user.id} {user.first_name} callback router submit:confirm interpreted operator")
             header = (
                 f"🆔 Заявка #{form.id} ({"Чётная" if form.id & 1 == 0 else "Не чётная"}) (нет решения)\n"
                 f"🧑‍💼 Роль: {form.role}\n"

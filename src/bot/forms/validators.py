@@ -63,6 +63,8 @@ class ValidatorWizard:
         return True, value
 
 def phone_validator(value: str) -> tuple[bool, Optional[str]]:
+    if value == "79991234321" or value == "+79991234321":
+        return False, "Пример не подходит. Если боитесь давать свой личный номер телефона, оформите eSIM или виртуальный номер — он нужен только для внесения записи в CRM. Личные данные не требуются"
     if not isinstance(value, str) or value.strip() == "":
         logger.info(f"Phone number check fail")
         return False, "номер телефона не должен быть пустым"
