@@ -69,6 +69,9 @@ def phone_validator(value: str) -> tuple[bool, Optional[str]]:
         logger.info(f"Phone number check fail")
         return False, "номер телефона не должен быть пустым"
     try:
+        if not re.match(r'^[+\d\s\-().]+$', value):
+            logger.info(f"Phone number check fail: disallowed characters")
+            return False, "номер содержит недопустимые символы"
         pn = phonenumbers.parse(value, "RU")
         if not phonenumbers.is_valid_number(pn):
             logger.info(f"Phone number check fail")
