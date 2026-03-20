@@ -70,14 +70,13 @@ async def run_wizard():
     attempts = 0
 
     def get_bot_proxy_pyrogram(config: Dict[str, Any]) -> Optional[dict]:
-        if not config.get("is_bot"):
-            return None
-
         proxy = config.get("proxy")
         if not proxy or not isinstance(proxy, list):
+            logger.info("cannot find proxy in config")
             return None
 
         ptype = (config.get("proxy_type") or proxy[0]).lower()
+        logger.info(f"proxy: scheme:{ptype}, hostname: {proxy[1][0]}, hostname: {proxy[2][0]}, hostname: {proxy[4][0]}, hostname: {proxy[5][0]}")
         return {
             "scheme": ptype,
             "hostname": proxy[1],
