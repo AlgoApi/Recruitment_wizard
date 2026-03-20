@@ -76,7 +76,7 @@ async def run_wizard():
             return None
 
         ptype = (config.get("proxy_type") or proxy[0]).lower()
-        logger.info(f"proxy: scheme:{ptype}, hostname: {proxy[1][0]}, hostname: {proxy[2][0]}, hostname: {proxy[4][0]}, hostname: {proxy[5][0]}")
+        logger.info(f"proxy: scheme:{ptype}, hostname: {proxy[1][0]}, hostname: {proxy[2]}, hostname: {proxy[4][0]}, hostname: {proxy[5][0]}")
         return {
             "scheme": ptype,
             "hostname": proxy[1],
