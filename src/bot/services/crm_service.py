@@ -109,7 +109,7 @@ async def auth_with_csrf(
             elif resp.status == 401:
                 logger.error("auth_with_csrf: 401 Unauthorized (Credentials incorrect?)")
             else:
-                logger.error(f"auth_with_csrf: Unexpected status {resp.status}. Response: {text[:200]}")
+                logger.error(f"auth_with_csrf: Unexpected status {resp.status}. Response: {recive[:200]}")
         else:
             logger.info("auth success")
             session.cookie_jar.update_cookies(resp.cookies, response_url=URL(auth_url))

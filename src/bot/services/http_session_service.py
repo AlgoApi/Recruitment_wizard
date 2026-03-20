@@ -16,7 +16,7 @@ class SessionManager:
         return cls._session[target]
 
     @classmethod
-    async def close_session(cls) -> None:
+    async def close_session(cls, target) -> None:
         if cls._session.get(target) is not None and not cls._session.get(target).closed:
             await cls._session.get(target).close()
-            cls._session[target] = None
+            cls._session.pop(target, None)
