@@ -65,6 +65,35 @@ async def run_wizard():
     zigma = ""
     attempts = 0
 
+    def get_bot_proxy_pyrogram(config: Dict[str, Any]) -> Optional[dict]:
+        if not config.get("is_bot"):
+            return None
+
+        proxy = config.get("proxy")
+        if not proxy or not isinstance(proxy, list):
+            return None
+
+        ptype = (config.get("proxy_type") or proxy[0]).lower()
+        return {
+            "scheme": ptype,
+            "hostname": proxy[1],
+            "port": int(proxy[2]),
+            "username": proxy[4] if len(proxy) > 4 else None,
+            "password": proxy[5] if len(proxy) > 5 else None,
+        }
+
+    def load_session_config(phone: str, informal_contact: bool = True) -> Optional[Dict[str, Any]]:
+        path = os.path.join('.', f'{phone}.json' if informal_contact else f'formal_contact/{phone}.json')
+        if not os.path.exists(path):
+            logger.error(f"Файл конфигурации {path} не найден!")
+            return None
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Ошибка чтения {path}: {e}")
+            return None
+
     while Path(f"Recruitment-SO{zigma}D.session").exists():
         logger.info(f"session found '{zigma}'")
         if len(zigma) > 1:
@@ -72,8 +101,10 @@ async def run_wizard():
         if not Path(f"Recruitment-SO{zigma}D.lock").exists():
             logger.info(f"attempt use session:{zigma}")
             open(f"Recruitment-SO{zigma}D.lock", "a").close()
+            config = load_session_config(f"Recruitment-SO{zigma}D")
+            pyro_proxy = get_bot_proxy_pyrogram(config)
             app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
-                        api_hash=settings.api_hash)
+                        api_hash=settings.api_hash, proxy=pyro_proxy)
             break
         else:
             logger.info(f"session '{zigma}' locked")
@@ -81,8 +112,10 @@ async def run_wizard():
 
     if not app:
         logger.warning(f"app is None")
+        config = load_session_config(f"Recruitment-SO{zigma}D")
+        pyro_proxy = get_bot_proxy_pyrogram(config)
         app = Client(f'Recruitment-SO{zigma}D', bot_token=settings.bot_token, api_id=settings.api_id,
-                             api_hash=settings.api_hash)
+                             api_hash=settings.api_hash, proxy=pyro_proxy)
 
     logger.info("init operator_form_conv")
     operator_form_conv = FormConversation(session_store, form_service, operator_form)
