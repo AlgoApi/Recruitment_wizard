@@ -6,7 +6,7 @@ from pyrogram.errors import MessageIdInvalid
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 from ..forms.definition import FormDefinition, FieldKind
-from ..forms.validators import ValidatorWizard, email_validator, phone_validator
+from ..forms.validators import ValidatorWizard, email_validator, phone_validator, validate_birth_date, validate_no_link
 from ..services.form_service import FormService
 from ..storage.session_store import RedisSessionStore
 from ..utils.utils import translate_role
@@ -21,6 +21,8 @@ class FormConversation:
         self.validator = ValidatorWizard()
         self.validator.add_validator(email_validator, "email")
         self.validator.add_validator(phone_validator, "phone")
+        self.validator.add_validator(validate_birth_date, "date")
+        self.validator.add_validator(validate_no_link, "no_link")
         logger.info(f"init FormConversation for {form_def.id}")
 
     async def start(self, client: Client, callback: CallbackQuery):

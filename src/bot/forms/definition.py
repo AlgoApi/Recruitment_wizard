@@ -53,14 +53,14 @@ operator_form = FormDefinition(
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)], photo="AgACAgIAAxkBAAPVaQYxwVaJ6qp-EjNaCwvLIr6FNdkAAtsGMhsrzDBIxgABxFKncqyAAAgBAAMCAAN5AAceBA"),
         Field(key='last_name', label='Фамилия', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=3)]),
-        Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=10)]),
+        Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="date")]),
         Field(key='eng_level', label='Знание английского языка', kind=FieldKind.TEXT),
         Field(key='cpu', label='Модель процессора ПК', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=5)], photo="AgACAgIAAxkBAAO1aQYpIkO8Aoz0Mw5CN-aQKFQggBoAAoQGMhsrzDBIPYSM5jcfAAEqAAgBAAMCAAN5AAceBA", animation="CgACAgIAAxkBAAO9aQYrTXTYfBqr8DLxFkOWDlK2liYAAmSRAAIrzDBIAftyDmcGJygeBA"),
         Field(key='gpu', label='Модель видеокарты ПК', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=5)]),
         Field(key='ethernet', label='Скорость интернета (Мбит/с)', kind=FieldKind.NUMBER, validator=[ValidationRule(min_value=10)]),
         Field(key='latest_job', label='Место предыдущей работы', kind=FieldKind.TEXT),
         Field(key='phone', label='Номер Телефон (пример: 79991234321)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")], photo="AgACAgIAAxkBAAO3aQYpKBjH1844TbWu8l0etzF9DwsAAoYGMhsrzDBI4KvDczu4nncACAEAAwIAA3kABx4E"),
-        Field(key='tg', label='Telegram (username или номер)', kind=FieldKind.TEXT),
+        Field(key='tg', label='Telegram (username или номер)', validator=[ValidationRule(custom="no_link")], kind=FieldKind.TEXT),
     ],
     page_size=4
 )
@@ -73,8 +73,8 @@ agent_form = FormDefinition(
     fields=[
         Field(key='first_name', label='Имя', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=2)], photo="AgACAgIAAxkBAAIDQmkM9ggchV8RUVktLkVBY1QK-LISAAJ1D2sbOlNoSEcDQSubLXh5AAgBAAMCAAN5AAceBA"),
         Field(key='phone', label='Номер телефона (пример: 79991234321)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="phone")]),
-        Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(min_length=10)], photo="AgACAgIAAxkBAAO5aQYpLxiXmJvHo6FBOV4Y2g18X7EAAocGMhsrzDBIRb71LdRECBYACAEAAwIAA3kABx4E"),
-        Field(key='tg', label='Telegram', kind=FieldKind.TEXT),
+        Field(key='birthday', label='Дата рождения (в формате ДД.ММ.ГГГГ)', kind=FieldKind.TEXT, validator=[ValidationRule(custom="date")], photo="AgACAgIAAxkBAAO5aQYpLxiXmJvHo6FBOV4Y2g18X7EAAocGMhsrzDBIRb71LdRECBYACAEAAwIAA3kABx4E"),
+        Field(key='tg', label='Telegram', validator=[ValidationRule(custom="no_link")], kind=FieldKind.TEXT),
     ],
     page_size=2
 )

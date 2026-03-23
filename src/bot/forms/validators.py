@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, Callable
 import phonenumbers
 from email_validator import validate_email, EmailNotValidError
 import re
+from datetime import datetime
 from .definition import Field
 
 logger = logging.getLogger(__name__)
@@ -93,3 +94,42 @@ def email_validator(value: str):
         logger.info(f"Phone number check fail")
         return False, "неверно набрана электронная почта"
 
+def validate_birth_date(value: str) -> tuple[bool, str]:
+    if not isinstance(value, str):
+        return False, "Дата должна быть строкой"
+
+    value = value.strip()
+
+    if not re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", value):
+        return False, "Дата должна быть в формате ДД.ММ.ГГГГ"
+
+    try:
+        dt = datetime.strptime(value, "%d.%m.%Y")
+    except ValueError:
+        return False, "Некорректная календарная дата"
+
+    normalized = dt.strftime("%d.%m.%Y")
+    return True, normalized
+
+
+def validate_no_link(value: str) -> tuple[bool, str]:
+    if not isinstance(value, str):
+        return False, "Значение должно быть строкой"
+
+    normalized = value.strip()
+
+    if len(value) < 5:
+        return False, "Значение не может быть меньше 5 символов"
+
+    url_pattern = re.compile(
+        r"(?i)\b("
+        r"https?://\S+|"
+        r"www\.\S+|"
+        r"[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/\S*)?"
+        r")"
+    )
+
+    if url_pattern.search(normalized):
+        return False, "Строка не должна содержать ссылку"
+
+    return True, normalized

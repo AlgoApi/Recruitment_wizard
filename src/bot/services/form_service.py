@@ -282,11 +282,12 @@ class FormService:
                     phone = phonenumbers.parse(number)
                     phone_country = region_code_for_number(phone)
                     tg_username = item.get("tg", None)
-                    if tg_username[0] == '@':
+                    if tg_username and tg_username[0] == '@':
                         tg_username = tg_username[1:]
 
                     return {
                         "category": 1,
+                        "payment_system": 0,
                         "name": item.get("first_name", None),
                         "birth_date": item.get("birthday", None),
                         "number": number,
