@@ -123,8 +123,10 @@ async def assign_master(staff_service: StaffService, role:str, user_id):
     staffs = await staff_service.get_staff(role="moderator", limit=False)
     for staff_entry in staffs:
         if role == "operator":
-            if staff_entry.operator_need:
-                assigned = staff_entry.username
+            # TEMP business
+            #if staff_entry.operator_need:
+            #    assigned = staff_entry.username
+            assigned = "hr_artemiy"
         elif role == "agent":
             if staff_entry.agent_need:
                 assigned = staff_entry.username
@@ -140,8 +142,10 @@ async def assign_master(staff_service: StaffService, role:str, user_id):
         staffs = await staff_service.get_staff(role="moderator", limit=False)
         for staff_entry in staffs:
             if role == "operator":
-                if staff_entry.operator_need:
-                    assigned = staff_entry.username
+                # TEMP business
+                # if staff_entry.operator_need:
+                #    assigned = staff_entry.username
+                assigned = "hr_artemiy"
             elif role == "agent":
                 if staff_entry.agent_need:
                     assigned = staff_entry.username
