@@ -80,7 +80,7 @@ def phone_validator(value: str) -> tuple[bool, Optional[str]]:
         # Нормализованный формат E.164:
         normalized = phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164)
         logger.info(f"Phone number check passed")
-        return True, normalized
+        return True, str(normalized).replace(" ", "")
     except phonenumbers.NumberParseException as e:
         logger.info(f"Phone number check fail")
         return False, f"это не похоже на номер телефона"
