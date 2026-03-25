@@ -116,6 +116,9 @@ def validate_no_link(value: str) -> tuple[bool, str]:
     if not isinstance(value, str):
         return False, "Значение должно быть строкой"
 
+    if "Telegram" in value:
+        return False, "некорректный username"
+
     normalized = value.strip()
 
     if len(value) < 5:
