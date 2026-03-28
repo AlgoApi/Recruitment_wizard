@@ -88,7 +88,7 @@ async def run_wizard():
     def load_session_config(phone: str, informal_contact: bool = True) -> Optional[Dict[str, Any]]:
         path = os.path.join('.', f'{phone}.json' if informal_contact else f'formal_contact/{phone}.json')
         if not os.path.exists(path):
-            logger.error(f"Файл конфигурации {path} не найден!")
+            logger.info(f"Файл конфигурации {path} не найден!")
             return None
         try:
             with open(path, 'r', encoding='utf-8') as f:

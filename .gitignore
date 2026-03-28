@@ -216,7 +216,6 @@ logs
 /.idea
 src/res
 __pycache__
-Dockerfile
 entrypoint.sh
 deploy.sh
 deploy_and_restart.log
